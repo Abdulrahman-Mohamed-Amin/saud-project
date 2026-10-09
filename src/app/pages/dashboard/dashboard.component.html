@@ -1,0 +1,323 @@
+<main class="flex-1 px-5 lg:px-8 py-6 space-y-6">
+
+  <!-- KPI cards -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 anim-stagger">
+
+    <!-- Total clients -->
+    <div class="rounded-2xl bg-white border border-line p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-pop">
+      <div class="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-700">
+        <app-icon name="users" />
+      </div>
+      <p class="text-3xl font-bold mt-4 tnum">{{ totalClients() }}</p>
+      <p class="text-sm font-medium text-ink mt-1">{{ 'dashboard.totalClients' | transloco }}</p>
+      <p class="text-xs text-ink-muted mt-2">{{ 'dashboard.registeredClients' | transloco }}</p>
+    </div>
+
+    <!-- Due today -->
+    @if (notif.dueTodayCount() > 0) {
+      <a routerLink="/payments/status/due" class="block rounded-2xl bg-[#F59E0B] text-white p-5 shadow-card relative overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-pop cursor-pointer">
+        <div class="absolute -top-6 -left-6 h-24 w-24 rounded-full bg-white/10"></div>
+        <div class="flex items-start justify-between relative">
+          <div class="grid h-11 w-11 place-items-center rounded-xl bg-white/20">
+            <app-icon name="calOut" />
+          </div>
+          <span class="text-[11px] font-semibold bg-white/20 rounded-full px-2.5 py-1">{{ 'dashboard.dueBadge' | transloco }}</span>
+        </div>
+        <p class="text-4xl font-bold mt-4 tnum">{{ notif.dueTodayCount() }}</p>
+        <p class="text-sm font-medium mt-1">{{ 'dashboard.duePayments' | transloco }}</p>
+        <p class="text-xs text-white/80 mt-2">{{ 'dashboard.dueToday' | transloco }}</p>
+      </a>
+    } @else {
+      <a routerLink="/payments/status/due" class="block rounded-2xl bg-white border border-line p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-pop cursor-pointer">
+        <div class="grid h-11 w-11 place-items-center rounded-xl bg-[#E9F9EF] text-[#16A34A]">
+          <app-icon name="check" />
+        </div>
+        <p class="text-3xl font-bold mt-4 tnum">0</p>
+        <p class="text-sm font-medium text-ink mt-1">{{ 'dashboard.duePayments' | transloco }}</p>
+        <p class="text-xs text-ink-muted mt-2">{{ 'dashboard.noDuePayments' | transloco }}</p>
+      </a>
+    }
+
+    <!-- Overdue -->
+    @if (notif.overdueCount() > 0) {
+      <a routerLink="/payments/status/overdue" class="block rounded-2xl bg-[#F2383A] text-white p-5 shadow-card relative overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-pop cursor-pointer">
+        <div class="absolute -top-6 -left-6 h-24 w-24 rounded-full bg-white/10"></div>
+        <div class="flex items-start justify-between relative">
+          <div class="grid h-11 w-11 place-items-center rounded-xl bg-white/20">
+            <app-icon name="alert" />
+          </div>
+          <span class="text-[11px] font-semibold bg-white/20 rounded-full px-2.5 py-1">{{ 'dashboard.alertBadge' | transloco }}</span>
+        </div>
+        <p class="text-4xl font-bold mt-4 tnum">{{ notif.overdueCount() }}</p>
+        <p class="text-sm font-medium mt-1">{{ 'dashboard.overduePayments' | transloco }}</p>
+        <p class="text-xs text-white/80 mt-2">{{ 'dashboard.requiresAction' | transloco }}</p>
+      </a>
+    } @else {
+      <a routerLink="/payments/status/overdue" class="block rounded-2xl bg-white border border-line p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-pop cursor-pointer">
+        <div class="grid h-11 w-11 place-items-center rounded-xl bg-[#E9F9EF] text-[#16A34A]">
+          <app-icon name="check" />
+        </div>
+        <p class="text-3xl font-bold mt-4 tnum">0</p>
+        <p class="text-sm font-medium text-ink mt-1">{{ 'dashboard.overduePayments' | transloco }}</p>
+        <p class="text-xs text-ink-muted mt-2">{{ 'common.allOnTime' | transloco }}</p>
+      </a>
+    }
+
+    <!-- Upcoming (due within 3 days) -->
+    @if (notif.upcomingCount() > 0) {
+      <a routerLink="/payments/status/upcoming" class="block rounded-2xl bg-[#1597AE] text-white p-5 shadow-card relative overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-pop cursor-pointer">
+        <div class="absolute -top-6 -left-6 h-24 w-24 rounded-full bg-white/10"></div>
+        <div class="flex items-start justify-between relative">
+          <div class="grid h-11 w-11 place-items-center rounded-xl bg-white/20">
+            <app-icon name="alert" />
+          </div>
+          <span class="text-[11px] font-semibold bg-white/20 rounded-full px-2.5 py-1">{{ 'dashboard.upcomingBadge' | transloco }}</span>
+        </div>
+        <p class="text-4xl font-bold mt-4 tnum">{{ notif.upcomingCount() }}</p>
+        <p class="text-sm font-medium mt-1">{{ 'dashboard.upcomingPayments' | transloco }}</p>
+        <p class="text-xs text-white/80 mt-2">{{ 'dashboard.upcomingSoon' | transloco }}</p>
+      </a>
+    } @else {
+      <a routerLink="/payments/status/upcoming" class="block rounded-2xl bg-white border border-line p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-pop cursor-pointer">
+        <div class="grid h-11 w-11 place-items-center rounded-xl bg-[#E6F8FB] text-[#1597AE]">
+          <app-icon name="calOut" />
+        </div>
+        <p class="text-3xl font-bold mt-4 tnum">0</p>
+        <p class="text-sm font-medium text-ink mt-1">{{ 'dashboard.upcomingPayments' | transloco }}</p>
+        <p class="text-xs text-ink-muted mt-2">{{ 'dashboard.noUpcomingPayments' | transloco }}</p>
+      </a>
+    }
+
+    <!-- Paid amount -->
+    <div class="rounded-2xl bg-white border border-line p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-pop">
+      <div class="grid h-11 w-11 place-items-center rounded-xl bg-[#E9F9EF] text-[#16A34A]">
+        <app-icon name="money" />
+      </div>
+      <p class="text-2xl sm:text-3xl font-bold mt-4 tnum leading-tight break-words">
+        {{ fmt(paidAmount()) }} <span class="text-base font-semibold text-ink-muted">{{ 'common.sar' | transloco }}</span>
+      </p>
+      <p class="text-sm font-medium text-ink mt-1">{{ 'dashboard.collectedAmount' | transloco }}</p>
+      <p class="text-xs text-ink-muted mt-2">{{ 'dashboard.fromTotalContracts' | transloco }}</p>
+    </div>
+
+    <!-- Remaining amount -->
+    <div class="rounded-2xl bg-white border border-line p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-pop">
+      <div class="grid h-11 w-11 place-items-center rounded-xl bg-[#E6F8FB] text-[#1597AE]">
+        <app-icon name="calOut" />
+      </div>
+      <p class="text-2xl sm:text-3xl font-bold mt-4 tnum leading-tight break-words">
+        {{ fmt(remainingAmount()) }} <span class="text-base font-semibold text-ink-muted">{{ 'common.sar' | transloco }}</span>
+      </p>
+      <p class="text-sm font-medium text-ink mt-1">{{ 'dashboard.remainingAmount' | transloco }}</p>
+      <p class="text-xs text-ink-muted mt-2">{{ 'dashboard.unpaidYet' | transloco }}</p>
+    </div>
+
+  </section>
+
+  <!-- Monthly collections per project -->
+  <section class="rounded-2xl bg-white border border-line shadow-card p-5 anim-rise">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="font-bold text-base">{{ 'dashboard.monthlyCollections' | transloco }}</h2>
+        <p class="text-xs text-ink-muted mt-0.5">{{ 'dashboard.monthlyCollectionsSub' | transloco }}</p>
+      </div>
+    </div>
+    @if (projectSummary().length === 0) {
+      <p class="text-sm text-ink-muted text-center py-4">{{ 'dashboard.noProjectsYet' | transloco }}</p>
+    } @else {
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        @for (p of projectSummary(); track p.name) {
+          <div class="rounded-xl border transition"
+               [ngClass]="editingProject() === p.name
+                 ? 'border-brand-300 bg-white ring-2 ring-brand-100'
+                 : 'border-line bg-canvas'">
+            @if (editingProject() !== p.name) {
+              <div class="flex items-start justify-between gap-1 p-3">
+                <a [routerLink]="['/payments', p.name]" class="flex-1 min-w-0 space-y-1 cursor-pointer">
+                  <p class="text-xs font-semibold text-ink truncate">{{ p.name }}</p>
+                  @if (p.monthlyPaid > 0) {
+                    <p class="text-lg font-bold text-[#16A34A] tnum leading-tight">{{ fmt(p.monthlyPaid) }}</p>
+                    <p class="text-[10px] text-ink-faint">{{ 'dashboard.thisMonth' | transloco }}</p>
+                  } @else {
+                    <p class="text-lg font-bold text-ink-faint tnum leading-tight">0</p>
+                    <p class="text-[10px] text-ink-faint">{{ 'dashboard.noCollection' | transloco }}</p>
+                  }
+                </a>
+                <button (click)="startEdit(p.name, $event)"
+                        [title]="'dashboard.editName' | transloco"
+                        class="shrink-0 p-1 rounded-md text-ink-faint hover:text-brand-700 hover:bg-brand-50 transition">
+                  <app-icon name="pencil" cls="h-3.5 w-3.5" />
+                </button>
+              </div>
+            } @else {
+              <div class="p-3">
+                <p class="text-[10px] text-brand-600 font-semibold mb-1.5">{{ 'dashboard.editProjectName' | transloco }}</p>
+                <input [(ngModel)]="editName"
+                       (keydown.enter)="saveEdit()"
+                       (keydown.escape)="cancelEdit()"
+                       [disabled]="saving"
+                       class="w-full text-xs font-semibold border border-brand-300 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-brand-200 bg-white disabled:opacity-50"
+                       dir="auto" />
+                <div class="flex gap-1 mt-2">
+                  <button (click)="saveEdit()" [disabled]="saving"
+                          class="flex-1 rounded-lg bg-brand text-white text-[10px] font-bold py-1.5 hover:bg-brand-600 disabled:opacity-50 transition">
+                    {{ saving ? '...' : ('common.save' | transloco) }}
+                  </button>
+                  <button (click)="cancelEdit()" [disabled]="saving"
+                          class="flex-1 rounded-lg border border-line text-ink-muted text-[10px] font-medium py-1.5 hover:bg-canvas transition">
+                    {{ 'common.cancel' | transloco }}
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Quick actions + overdue list -->
+  <section class="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
+
+    <!-- Overdue payments -->
+    <div class="anim-rise rounded-2xl bg-white border border-line shadow-card p-5 lg:p-6">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h2 class="font-bold text-lg">{{ 'dashboard.overduePaymentsTitle' | transloco }}</h2>
+          <p class="text-xs text-ink-muted mt-0.5">{{ 'dashboard.overduePaymentsSub' | transloco }}</p>
+        </div>
+        <a routerLink="/payments"
+           class="rounded-xl border border-line px-4 py-2 text-xs font-semibold text-ink-muted hover:bg-canvas transition">
+          {{ 'dashboard.viewAll' | transloco }}
+        </a>
+      </div>
+
+      @if (notif.overdueList().length === 0) {
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+          <div class="grid h-16 w-16 place-items-center rounded-2xl bg-[#E9F9EF] text-[#16A34A] mb-4">
+            <app-icon name="check" cls="h-8 w-8" />
+          </div>
+          <p class="font-semibold text-ink">{{ 'common.noOverduePayments' | transloco }}</p>
+          <p class="text-xs text-ink-muted mt-1">{{ 'common.allOnTime' | transloco }}</p>
+        </div>
+      } @else {
+        <div class="space-y-3 max-h-80 overflow-y-auto pe-1">
+          @for (item of notif.overdueList(); track item.clientId + item.payment.id) {
+            <div class="flex items-center gap-3 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3">
+              <div class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#FEE2E2] text-[#DC2626]">
+                <app-icon name="alert" cls="h-4 w-4" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-ink truncate">{{ item.clientName }}</p>
+                <p class="text-[11px] text-ink-muted truncate">
+                  {{ item.projectName }}@if (item.unitCode) { · {{ item.unitCode }} }
+                </p>
+              </div>
+              <div class="text-end shrink-0">
+                <p class="text-sm font-bold tnum text-ink">{{ fmt(item.payment.amount) }} <span class="text-xs font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+                <p class="text-[11px] text-[#DC2626] tnum">{{ item.payment.date }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Quick actions -->
+    <aside class="anim-scale space-y-4">
+
+      <div class="rounded-2xl bg-white border border-line shadow-card p-5">
+        <h3 class="font-bold mb-4">{{ 'dashboard.quickActions' | transloco }}</h3>
+        <div class="space-y-3">
+          <a routerLink="/payments"
+             class="flex items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 hover:bg-canvas transition">
+            <div class="grid h-9 w-9 place-items-center rounded-lg bg-brand-50 text-brand-700">
+              <app-icon name="money" cls="h-5 w-5" />
+            </div>
+            <div>
+              <p class="text-sm font-bold text-ink">{{ 'dashboard.followPayments' | transloco }}</p>
+              <p class="text-xs text-ink-muted">{{ 'dashboard.clientPaymentStatusSub' | transloco }}</p>
+            </div>
+          </a>
+          <a routerLink="/settings"
+             class="flex items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 hover:bg-canvas transition">
+            <div class="grid h-9 w-9 place-items-center rounded-lg bg-canvas text-ink-faint">
+              <app-icon name="gear" cls="h-5 w-5" />
+            </div>
+            <div>
+              <p class="text-sm font-bold text-ink">{{ 'dashboard.settingsLabel' | transloco }}</p>
+              <p class="text-xs text-ink-muted">{{ 'dashboard.accountSettingsSub' | transloco }}</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Projects summary -->
+      <div class="rounded-2xl bg-white border border-line shadow-card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold">{{ 'dashboard.projectsSummary' | transloco }}</h3>
+          <span class="text-[11px] text-ink-faint">{{ 'dashboard.collectedThisMonth' | transloco }}</span>
+        </div>
+        @if (projectSummary().length === 0) {
+          <p class="text-xs text-ink-muted text-center py-6">{{ 'dashboard.noProjectsYet' | transloco }}</p>
+        } @else {
+          <div class="space-y-2 max-h-72 overflow-y-auto pe-1">
+            @for (p of projectSummary(); track p.name) {
+              <div class="rounded-xl border transition"
+                   [ngClass]="editingProject() === p.name
+                     ? 'border-brand-300 bg-white ring-2 ring-brand-100'
+                     : p.overdue > 0 ? 'border-[#FCA5A5] bg-[#FEF2F2]' : 'border-line bg-white'">
+                @if (editingProject() !== p.name) {
+                  <div class="flex items-center gap-2 px-3 py-2.5">
+                    <a [routerLink]="['/payments', p.name]" class="flex-1 min-w-0 flex items-start justify-between gap-2 cursor-pointer hover:opacity-80 transition">
+                      <div class="min-w-0 flex-1">
+                        <p class="text-sm font-semibold text-ink truncate">{{ p.name }}</p>
+                        <p class="text-[11px] text-ink-muted">{{ p.clients }} {{ 'common.client' | transloco }}</p>
+                      </div>
+                      @if (p.overdue > 0) {
+                        <span class="shrink-0 rounded-lg bg-[#FEE2E2] text-[#DC2626] text-xs font-bold px-2.5 py-1 tnum">
+                          {{ p.overdue }} {{ 'common.overdue' | transloco }}
+                        </span>
+                      } @else {
+                        <span class="shrink-0 rounded-lg bg-[#E9F9EF] text-[#16A34A] text-xs font-semibold px-2.5 py-1">
+                          {{ 'common.regular' | transloco }}
+                        </span>
+                      }
+                    </a>
+                    <button (click)="startEdit(p.name, $event)"
+                            [title]="'dashboard.editName' | transloco"
+                            class="shrink-0 p-1 rounded-md text-ink-faint hover:text-brand-700 hover:bg-brand-50 transition">
+                      <app-icon name="pencil" cls="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                } @else {
+                  <div class="px-3 py-2.5">
+                    <p class="text-[10px] text-brand-600 font-semibold mb-1.5">{{ 'dashboard.editProjectName' | transloco }}</p>
+                    <input [(ngModel)]="editName"
+                           (keydown.enter)="saveEdit()"
+                           (keydown.escape)="cancelEdit()"
+                           [disabled]="saving"
+                           class="w-full text-sm font-semibold border border-brand-300 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-brand-200 bg-white disabled:opacity-50"
+                           dir="auto" />
+                    <div class="flex gap-1.5 mt-2">
+                      <button (click)="saveEdit()" [disabled]="saving"
+                              class="flex-1 rounded-lg bg-brand text-white text-xs font-bold py-1.5 hover:bg-brand-600 disabled:opacity-50 transition">
+                        {{ saving ? '...' : ('common.save' | transloco) }}
+                      </button>
+                      <button (click)="cancelEdit()" [disabled]="saving"
+                              class="flex-1 rounded-lg border border-line text-ink-muted text-xs font-medium py-1.5 hover:bg-canvas transition">
+                        {{ 'common.cancel' | transloco }}
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </aside>
+  </section>
+
+</main>

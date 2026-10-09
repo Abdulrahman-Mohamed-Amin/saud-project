@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  background: #f7f8fb;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2f95d6 #eff8fd;
+}
+
+::-webkit-scrollbar-track {
+  background: #eff8fd;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2f95d6;
+  border-radius: 99px;
+  border: 3px solid #eff8fd;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1668a3;
+}
+
+.tnum {
+  font-feature-settings: 'tnum';
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.anim-pop {
+  animation: pop-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.anim-fade {
+  animation: fade-in 0.18s ease both;
+}
+
+/* ===== Dashboard entrance animations ===== */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* عنصر يدخل بانزلاق لأعلى */
+.anim-rise {
+  animation: rise-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* عنصر يدخل بتكبير ناعم */
+.anim-scale {
+  animation: scale-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* تأخير متدرّج للعناصر المتتابعة (stagger) */
+.anim-stagger > * {
+  animation: rise-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.anim-stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.anim-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.anim-stagger > *:nth-child(3) { animation-delay: 0.16s; }
+.anim-stagger > *:nth-child(4) { animation-delay: 0.22s; }
+.anim-stagger > *:nth-child(5) { animation-delay: 0.28s; }
+.anim-stagger > *:nth-child(6) { animation-delay: 0.34s; }
+.anim-stagger > *:nth-child(7) { animation-delay: 0.4s; }
+.anim-stagger > *:nth-child(8) { animation-delay: 0.46s; }
+.anim-stagger > *:nth-child(9) { animation-delay: 0.52s; }
+
+/* احترام تفضيل تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  .anim-pop,
+  .anim-fade,
+  .anim-rise,
+  .anim-scale,
+  .anim-stagger > * {
+    animation: none !important;
+  }
+}

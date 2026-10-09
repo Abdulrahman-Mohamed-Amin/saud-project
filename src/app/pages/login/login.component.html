@@ -1,0 +1,119 @@
+<div class="min-h-screen flex bg-canvas relative">
+  <!-- Language toggle -->
+  <button
+    type="button"
+    (click)="lang.toggle()"
+    class="absolute top-4 end-4 z-10 grid h-10 px-3 place-items-center rounded-xl border border-line bg-white text-xs font-semibold text-ink-muted hover:bg-canvas transition"
+  >
+    {{ 'layout.language' | transloco }}
+  </button>
+
+  <!-- ===================== FORM SIDE ===================== -->
+  <div class="flex w-full lg:w-1/2 items-center justify-center p-6">
+    <div class="w-full max-w-sm anim-pop">
+      <!-- Logo (mobile + always) -->
+      <div class="flex items-center gap-3 mb-8">
+        <div class="grid h-11 w-11 place-items-center rounded-xl bg-brand text-white font-bold text-lg">س</div>
+        <div>
+          <p class="font-bold leading-tight">{{ 'login.companyName' | transloco }}</p>
+          <p class="text-xs text-ink-muted leading-tight">{{ 'login.tagline' | transloco }}</p>
+        </div>
+      </div>
+
+      <h1 class="text-2xl font-bold">{{ 'login.title' | transloco }}</h1>
+      <p class="text-sm text-ink-muted mt-1.5">{{ 'login.welcome' | transloco }}</p>
+
+      <form class="mt-7 space-y-4" (ngSubmit)="submit()">
+        <!-- Username -->
+        <label class="block">
+          <span class="text-xs font-semibold text-ink-muted">{{ 'login.username' | transloco }}</span>
+          <div class="relative mt-1.5">
+            <span class="absolute start-3 top-1/2 -translate-y-1/2 text-ink-faint"><app-icon name="mail" cls="h-4 w-4" /></span>
+            <input
+              [(ngModel)]="username"
+              name="username"
+              type="text"
+              dir="ltr"
+              placeholder="User Name"
+              autocomplete="username"
+              class="w-full rounded-xl border border-line bg-white ps-11 pe-3 py-3 text-sm text-left placeholder:text-ink-faint focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100 transition"
+            />
+          </div>
+        </label>
+
+        <!-- Password -->
+        <label class="block">
+          <span class="text-xs font-semibold text-ink-muted">{{ 'login.password' | transloco }}</span>
+          <div class="relative mt-1.5">
+            <span class="absolute start-3 top-1/2 -translate-y-1/2 text-ink-faint"><app-icon name="lock" cls="h-4 w-4" /></span>
+            <input
+              [(ngModel)]="password"
+              name="password"
+              [type]="showPassword ? 'text' : 'password'"
+              dir="ltr"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              class="w-full rounded-xl border border-line bg-white ps-11 pe-11 py-3 text-sm text-left placeholder:text-ink-faint focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100 transition"
+            />
+            <button
+              type="button"
+              (click)="showPassword = !showPassword"
+              class="absolute end-2 top-1/2 -translate-y-1/2 grid h-8 w-8 place-items-center rounded-lg text-ink-faint hover:bg-canvas transition"
+            >
+              <app-icon [name]="showPassword ? 'eyeOff' : 'eye'" cls="h-4 w-4" />
+            </button>
+          </div>
+        </label>
+
+        <!-- Error message -->
+        @if (errorMsgKey) {
+          <div class="flex items-center gap-2 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3">
+            <app-icon name="alert" cls="h-4 w-4 text-[#DC2626] shrink-0" />
+            <p class="text-sm text-[#DC2626]">{{ errorMsgKey | transloco }}</p>
+          </div>
+        }
+
+        <!-- Submit -->
+        <button
+          type="submit"
+          [disabled]="!valid || submitting"
+          class="w-full flex items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-semibold text-white shadow-card hover:bg-brand-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          @if (submitting) {
+            <span class="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+            {{ 'login.submitting' | transloco }}
+          } @else {
+            {{ 'login.submit' | transloco }} <app-icon name="arrow" cls="h-4 w-4 ltr:rotate-180" />
+          }
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="flex items-center gap-3 my-6">
+        <span class="h-px flex-1 bg-line"></span>
+        <span class="text-xs text-ink-faint">{{ 'login.or' | transloco }}</span>
+        <span class="h-px flex-1 bg-line"></span>
+      </div>
+
+      <p class="text-center text-sm text-ink-muted">
+        {{ 'login.noAccount' | transloco }}
+        <a href="#" class="font-semibold text-brand-700 hover:text-brand-600 transition">{{ 'login.contactAdmin' | transloco }}</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- ===================== BRAND SIDE ===================== -->
+  <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-brand text-white p-12 flex-col items-center justify-center text-center gap-8">
+    <div class="absolute -top-16 -left-16 h-64 w-64 rounded-full bg-white/10"></div>
+    <div class="absolute bottom-10 -left-24 h-72 w-72 rounded-full bg-white/5"></div>
+    <div class="absolute -bottom-20 right-10 h-48 w-48 rounded-full bg-white/5"></div>
+
+    <div class="relative">
+      <img src="logo-icon-white.png" [attr.alt]="'login.companyName' | transloco" class=" object-contain mx-auto" width="100"/>
+    </div>
+
+    <h2 class="relative text-5xl font-bold leading-snug max-w-lg">
+      {{ 'login.headlineLine1' | transloco }}<br />{{ 'login.headlineLine2' | transloco }}
+    </h2>
+  </div>
+</div>

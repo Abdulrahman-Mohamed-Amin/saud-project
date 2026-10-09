@@ -1,0 +1,46 @@
+<main class="flex-1 px-5 lg:px-8 py-6 space-y-6">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="font-bold text-lg">{{ titleKey() | transloco }}</h2>
+      <p class="text-xs text-ink-muted mt-0.5 tnum">{{ list().length }} {{ 'common.client' | transloco }}</p>
+    </div>
+    <a routerLink="/payments"
+       class="rounded-xl border border-line px-4 py-2 text-xs font-semibold text-ink-muted hover:bg-canvas transition">
+      {{ 'dashboard.viewAll' | transloco }}
+    </a>
+  </div>
+
+  <div class="rounded-2xl bg-white border border-line shadow-card p-5 lg:p-6">
+    @if (list().length === 0) {
+      <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="grid h-16 w-16 place-items-center rounded-2xl bg-[#E9F9EF] text-[#16A34A] mb-4">
+          <app-icon name="check" cls="h-8 w-8" />
+        </div>
+        <p class="font-semibold text-ink">{{ emptyKey() | transloco }}</p>
+      </div>
+    } @else {
+      <div class="space-y-3">
+        @for (item of list(); track item.clientId + item.payment.id) {
+          <button type="button" (click)="open(item)"
+                  class="w-full flex items-center gap-3 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-start hover:-translate-y-0.5 hover:shadow-pop transition">
+            <div class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#FEE2E2] text-[#DC2626]">
+              <app-icon name="alert" cls="h-4 w-4" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-ink truncate">{{ item.clientName }}</p>
+              <p class="text-[11px] text-ink-muted truncate">
+                {{ item.projectName }}@if (item.unitCode) { · {{ item.unitCode }} }
+              </p>
+            </div>
+            <div class="text-end shrink-0">
+              <p class="text-sm font-bold tnum text-ink">{{ fmt(item.payment.amount) }} <span class="text-xs font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+              <p class="text-[11px] text-[#DC2626] tnum">{{ item.payment.date }}</p>
+            </div>
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+</main>

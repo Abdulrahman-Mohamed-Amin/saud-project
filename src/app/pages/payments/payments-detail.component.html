@@ -1,0 +1,660 @@
+<main class="flex-1 px-5 lg:px-8 py-6 space-y-6">
+
+  <!-- Back + title + add button -->
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-3">
+    <button type="button" (click)="back()"
+      class="flex items-center gap-2 text-sm text-ink-muted hover:text-ink transition shrink-0">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+      {{ 'detail.backToProjects' | transloco }}
+    </button>
+    <span class="text-ink-faint hidden sm:inline">/</span>
+    <h1 class="text-lg sm:text-xl font-bold text-ink truncate min-w-0 basis-full sm:basis-0 sm:flex-1">{{ projectName() }}</h1>
+
+    <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto sm:ms-auto">
+    <button type="button" (click)="startWhatsAppReminders()"
+      class="w-full sm:w-auto justify-center shrink-0 flex items-center gap-2 rounded-xl border border-line bg-white px-3 sm:px-4 py-2.5 text-sm font-semibold text-ink hover:bg-canvas transition">
+      <svg class="h-4 w-4 text-[#25D366] shrink-0" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+      {{ 'detail.sendWaReminders' | transloco }}
+    </button>
+    @if (auth.canManagePayments) {
+      <button type="button" (click)="openXlsx()"
+        class="w-full sm:w-auto justify-center shrink-0 flex items-center gap-2 rounded-xl border border-line bg-white px-3 sm:px-4 py-2.5 text-sm font-semibold text-ink hover:bg-canvas transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#16A34A] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-6m3 6V7m3 10v-4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+        </svg>
+        {{ 'detail.importExcel' | transloco }}
+      </button>
+      <button type="button" (click)="openAdd()"
+        class="w-full sm:w-auto justify-center shrink-0 flex items-center gap-2 rounded-xl bg-brand px-3 sm:px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        {{ 'detail.addClient' | transloco }}
+      </button>
+    }
+    </div>
+  </div>
+
+  <!-- Search -->
+  @if (!loading() && contracts().length) {
+    <div class="relative max-w-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="pointer-events-none absolute top-1/2 -translate-y-1/2 start-3.5 h-4 w-4 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" [placeholder]="'detail.searchPlaceholder' | transloco"
+        class="w-full rounded-xl border border-line bg-white ps-10 pe-9 py-2.5 text-sm text-ink focus:outline-none focus:border-brand transition" />
+      @if (searchQuery()) {
+        <button type="button" (click)="clearSearch()"
+          class="absolute top-1/2 -translate-y-1/2 end-3 grid h-5 w-5 place-items-center rounded-full text-ink-faint hover:bg-canvas hover:text-ink transition cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="flex items-center justify-center min-h-[40vh]">
+      <div class="h-8 w-8 rounded-full border-4 border-brand border-t-transparent animate-spin"></div>
+    </div>
+  }
+
+  @if (!loading() && searchQuery().trim() && !filtered().length) {
+    <div class="flex flex-col items-center justify-center min-h-[30vh] text-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <p class="text-sm font-semibold text-ink-muted">{{ 'detail.noResultsFor' | transloco: { query: searchQuery() } }}</p>
+    </div>
+  }
+
+  @if (!loading()) {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 anim-stagger">
+
+      @for (c of filtered(); track c.id) {
+        <button type="button" (click)="openClient(c)" [id]="'client-' + c.id"
+             class="relative rounded-2xl bg-white border shadow-card flex flex-col text-start transition-all duration-300 hover:-translate-y-1 hover:shadow-pop cursor-pointer"
+             [class.border-line]="highlightId() !== c.id"
+             [class.border-brand]="highlightId() === c.id"
+             [class.ring-4]="highlightId() === c.id"
+             [class.ring-brand]="highlightId() === c.id"
+             [class.ring-offset-2]="highlightId() === c.id">
+
+          <!-- Due/overdue alert dot (flashing) -->
+          @if (cardDot(c)) {
+            <span class="absolute top-3 start-3 flex h-3 w-3 z-10">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                    [class.bg-[#DC2626]]="cardDot(c) === 'red'" [class.bg-[#F59E0B]]="cardDot(c) === 'yellow'"></span>
+              <span class="relative inline-flex h-3 w-3 rounded-full"
+                    [class.bg-[#DC2626]]="cardDot(c) === 'red'" [class.bg-[#F59E0B]]="cardDot(c) === 'yellow'"></span>
+            </span>
+          }
+
+          <!-- Card header -->
+          <div class="flex items-start justify-between gap-2 p-4 border-b border-line">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <!-- Unit code badge -->
+              <div class="flex flex-col items-center justify-center h-12 w-12 rounded-xl bg-brand text-white shrink-0">
+                <span class="text-[10px] font-medium opacity-80 leading-none">{{ 'detail.unit' | transloco }}</span>
+                <span class="text-sm font-bold tnum leading-tight">{{ c.fields['unit_code'] || '—' }}</span>
+              </div>
+              <div class="min-w-0">
+                <p class="font-bold text-ink text-sm leading-tight truncate">{{ c.client_name }}</p>
+                <p class="text-base font-bold tnum text-brand mt-0.5">
+                  {{ fmt(c.unit_price) }} <span class="text-xs font-semibold text-ink-muted">{{ 'common.sar' | transloco }}</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Edit / delete -->
+            @if (auth.canManagePayments) {
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" (click)="openEdit(c); $event.stopPropagation()"
+                  class="grid h-8 w-8 place-items-center rounded-lg border border-line text-ink-muted hover:bg-canvas hover:text-ink transition cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button type="button" (click)="confirmDelete(c.id); $event.stopPropagation()"
+                  class="grid h-8 w-8 place-items-center rounded-lg border border-line text-ink-muted hover:bg-[#FEF2F2] hover:border-[#FCA5A5] hover:text-[#DC2626] transition cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Collection progress -->
+          <div class="p-4">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-ink-muted">{{ 'detail.collection' | transloco }}</span>
+              <span class="text-xs font-bold text-ink tnum">{{ paidCount(c) }} / {{ c.payments.length }}</span>
+            </div>
+            <div class="h-1.5 w-full rounded-full bg-line overflow-hidden">
+              <div class="h-full rounded-full bg-brand transition-all duration-500" [style.width]="progressWidth(c)"></div>
+            </div>
+          </div>
+
+        </button>
+      }
+
+    </div>
+  }
+
+</main>
+
+<!-- ═══ Delete confirmation modal ═══ -->
+@if (deleteTargetId) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="cancelDelete()">
+    <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
+    <div class="relative z-10 w-full max-w-sm rounded-2xl bg-white shadow-pop p-6 anim-pop" (click)="$event.stopPropagation()">
+      <div class="grid h-12 w-12 place-items-center rounded-xl bg-[#FEE2E2] text-[#DC2626] mx-auto mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
+      <h3 class="text-center font-bold text-ink text-lg">{{ 'detail.deleteClientTitle' | transloco }}</h3>
+      <p class="text-center text-sm text-ink-muted mt-2">{{ 'detail.deleteClientText' | transloco }}</p>
+      <div class="flex gap-3 mt-6">
+        <button (click)="executeDelete()" [disabled]="deleting"
+          class="flex-1 rounded-xl bg-[#DC2626] py-2.5 text-sm font-semibold text-white hover:bg-[#b91c1c] transition disabled:opacity-60 cursor-pointer">
+          {{ deleting ? ('common.deleting' | transloco) : ('payments.confirmDelete' | transloco) }}
+        </button>
+        <button (click)="cancelDelete()"
+          class="flex-1 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+          {{ 'common.cancel' | transloco }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Edit modal ═══ -->
+@if (editTarget) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="cancelEdit()">
+    <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
+    <div class="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-pop p-6 anim-pop max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+      <h3 class="font-bold text-ink text-lg mb-5">{{ 'detail.editClientTitle' | transloco }}</h3>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.clientName' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <input type="text" [(ngModel)]="editName"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.email' | transloco }}</label>
+          <input type="email" [(ngModel)]="editEmail" placeholder="client@email.com" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.phone' | transloco }}</label>
+          <input type="tel" [(ngModel)]="editPhone" placeholder="05XXXXXXXX" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.whatsapp' | transloco }}</label>
+          <input type="tel" [(ngModel)]="editWhatsapp" placeholder="05XXXXXXXX" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+          <p class="text-[11px] text-ink-faint mt-1">{{ 'detail.whatsappHint' | transloco }}</p>
+        </div>
+        <div>
+          <span class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.gender' | transloco }}</span>
+          <div class="flex gap-2">
+            <label class="flex-1 flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm cursor-pointer transition"
+                   [class.border-brand]="editGender === 'male'" [class.bg-brand-50]="editGender === 'male'" [class.text-brand-700]="editGender === 'male'"
+                   [class.border-line]="editGender !== 'male'" [class.text-ink-muted]="editGender !== 'male'">
+              <input type="radio" name="editGender" value="male" [(ngModel)]="editGender" class="sr-only" />
+              {{ 'detail.male' | transloco }}
+            </label>
+            <label class="flex-1 flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm cursor-pointer transition"
+                   [class.border-brand]="editGender === 'female'" [class.bg-brand-50]="editGender === 'female'" [class.text-brand-700]="editGender === 'female'"
+                   [class.border-line]="editGender !== 'female'" [class.text-ink-muted]="editGender !== 'female'">
+              <input type="radio" name="editGender" value="female" [(ngModel)]="editGender" class="sr-only" />
+              {{ 'detail.female' | transloco }}
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.unitCode' | transloco }}</label>
+          <input type="text" [(ngModel)]="editUnitCode"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.unitPrice' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <input type="number" [(ngModel)]="editUnitPrice" (ngModelChange)="onEditPriceChange()" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.firstInstallmentDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <input type="date" [(ngModel)]="editContractDate"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.installmentsCount' | transloco }}</label>
+          <input type="number" min="1" max="60" [(ngModel)]="editInstallmentsCount" (ngModelChange)="onEditInstallmentsCountChange()" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+
+        <!-- خطة الدفعات — موزّعة تلقائياً بالتساوي على عدد الدفعات المحدد خلال السنة، وقابلة للتعديل الكامل -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-ink-muted">{{ 'detail.installmentPlan' | transloco }}</span>
+            <button type="button" (click)="autoSplitEditInstallments()" [disabled]="!editUnitPrice"
+              class="text-[11px] font-semibold text-brand hover:text-brand-600 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+              {{ 'detail.autoSplit' | transloco }}
+            </button>
+          </div>
+          <p class="text-[11px] text-ink-faint mb-2">{{ 'detail.installmentPlanHint' | transloco }}</p>
+
+          <div class="space-y-1.5">
+            @for (row of editInstallments; track $index) {
+              <div class="flex items-center gap-1.5">
+                <span class="w-11 shrink-0 text-[11px] text-ink-faint">{{ $index + 1 }}.</span>
+                <input type="number" [(ngModel)]="row.percent" (ngModelChange)="onEditPercentEdit($index)"
+                  placeholder="%" dir="ltr" [title]="'detail.percent' | transloco"
+                  class="w-14 shrink-0 rounded-lg border border-line bg-canvas px-1.5 py-1.5 text-sm text-ink text-center focus:outline-none focus:border-brand focus:bg-white transition" />
+                <span class="shrink-0 text-xs text-ink-faint">%</span>
+                <input type="number" [(ngModel)]="row.amount" (ngModelChange)="onEditAmountEdit($index)"
+                  [placeholder]="'detail.amount' | transloco" dir="ltr"
+                  class="flex-1 min-w-0 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+                <button type="button" (click)="removeEditInstallmentRow($index)" [disabled]="editInstallments.length <= 1"
+                  [title]="'detail.removeInstallment' | transloco"
+                  class="shrink-0 grid h-7 w-7 place-items-center rounded-lg text-ink-faint hover:bg-[#FEF2F2] hover:text-[#DC2626] transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  <app-icon name="close" cls="h-3.5 w-3.5" />
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="mt-3 flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold"
+               [class.bg-[#ECFDF5]]="editInstallmentsRemaining === 0"
+               [class.text-[#16A34A]]="editInstallmentsRemaining === 0"
+               [class.bg-[#FEF2F2]]="editInstallmentsRemaining !== 0"
+               [class.text-[#DC2626]]="editInstallmentsRemaining !== 0">
+            <span class="tnum">{{ 'detail.total' | transloco }}: {{ fmt(editInstallmentsTotal) }}</span>
+            @if (editInstallmentsRemaining !== 0) {
+              <span class="tnum">{{ 'detail.remainingToDistribute' | transloco }}: {{ fmt(editInstallmentsRemaining) }}</span>
+            } @else {
+              <span>✓ {{ 'detail.matchesPrice' | transloco }}</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-6">
+        <button (click)="saveEdit()" [disabled]="!editValid || saving"
+          class="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition disabled:opacity-50 cursor-pointer">
+          {{ saving ? ('common.saving' | transloco) : ('common.save' | transloco) }}
+        </button>
+        <button (click)="cancelEdit()" [disabled]="saving"
+          class="flex-1 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer disabled:opacity-50">
+          {{ 'common.cancel' | transloco }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Excel import modal ═══ -->
+@if (xlsxOpen) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="closeXlsx()">
+    <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
+    <div class="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-pop p-6 anim-pop" (click)="$event.stopPropagation()">
+      <h3 class="font-bold text-ink text-lg mb-1">{{ 'detail.importTitle' | transloco }}</h3>
+      <p class="text-xs text-ink-muted mb-5">
+        {{ 'detail.importRequiredCol' | transloco }} <span class="font-mono bg-canvas px-1 rounded">name</span> — {{ 'detail.importRestOptional' | transloco }}
+        {{ 'detail.importInstallmentsCountCol' | transloco }} <span class="font-mono bg-canvas px-1 rounded">installments_count</span> {{ 'detail.importInstallmentsCountColHint' | transloco }}
+        {{ 'detail.importPaidCols' | transloco }} <span class="font-mono bg-canvas px-1 rounded">دفعة_1</span> {{ 'detail.importTo' | transloco }} <span class="font-mono bg-canvas px-1 rounded">دفعة_12</span> {{ 'detail.importYesNo' | transloco }}
+        {{ 'detail.importTemplateHint' | transloco }}
+      </p>
+
+      <input #xlsxInput type="file" accept=".xlsx,.xls" class="hidden" (change)="handleXlsxFile($event)">
+
+      @if (!xlsxRows.length) {
+        <div
+          class="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 text-center cursor-pointer transition"
+          [class]="isDragging
+            ? 'border-brand bg-brand-50 scale-[1.01]'
+            : 'border-line hover:border-brand hover:bg-canvas'"
+          (click)="triggerXlsxInput()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 transition"
+               [class]="isDragging ? 'text-brand' : 'text-[#16A34A]'"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-6m3 6V7m3 10v-4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+          </svg>
+          <p class="text-sm font-semibold text-ink">
+            {{ isDragging ? ('detail.dropHere' | transloco) : ('detail.dropPrompt' | transloco) }}
+          </p>
+          <p class="text-xs text-ink-faint">xlsx / xls</p>
+        </div>
+        <div class="mt-4 flex items-center justify-center gap-2">
+          <span class="text-xs text-ink-faint">{{ 'detail.noCorrectFile' | transloco }}</span>
+          <button (click)="$event.stopPropagation(); downloadTemplate()"
+            class="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink-muted hover:bg-canvas hover:border-brand hover:text-brand transition cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            {{ 'detail.downloadTemplate' | transloco }}
+          </button>
+        </div>
+      } @else {
+        <div class="rounded-xl border border-line mb-4 max-h-64 overflow-auto">
+          <table class="w-full min-w-[640px] text-sm">
+            <thead class="bg-canvas sticky top-0">
+              <tr>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colName' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colUnit' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colPrice' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colFirstPayment' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colContractDate' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colPhone' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.installmentsCount' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colPaidInstallments' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of xlsxRows; track $index) {
+                <tr class="border-t border-line" [ngClass]="r.error ? 'bg-[#FEF2F2]' : ''">
+                  <td class="px-3 py-2 font-medium text-ink">{{ r.name || '—' }}</td>
+                  <td class="px-3 py-2 text-ink-muted">{{ r.unit_code || '—' }}</td>
+                  <td class="px-3 py-2 tnum text-ink-muted">{{ r.unit_price || '—' }}</td>
+                  <td class="px-3 py-2 tnum text-ink-muted">{{ r.first_payment || '—' }}</td>
+                  <td class="px-3 py-2 tnum text-ink-muted">{{ r.contract_date || '—' }}</td>
+                  <td class="px-3 py-2 text-ink-muted text-[11px]">{{ r.phone || '—' }}</td>
+                  <td class="px-3 py-2 tnum text-ink-muted">{{ rowInstallmentsCount(r) }}</td>
+                  <td class="px-3 py-2 tnum text-ink-muted">
+                    {{ r.paidProvided ? (getPaidCount(r) + ' / ' + rowInstallmentsCount(r)) : '—' }}
+                  </td>
+                  <td class="px-3 py-2">
+                    @if (r.error) {
+                      <span class="text-[11px] text-[#DC2626] font-medium">{{ r.error }}</span>
+                    } @else {
+                      <span class="text-[11px] text-[#16A34A] font-medium">✓</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <p class="text-xs text-ink-muted mb-4">
+          {{ 'detail.rowsCount' | transloco: { count: xlsxRows.length } }}
+          <span class="text-[#16A34A] font-semibold">{{ 'detail.validCount' | transloco: { count: xlsxValidCount } }}</span>
+          @if (xlsxErrorCount) {
+            · <span class="text-[#DC2626] font-semibold">{{ 'detail.errorCount' | transloco: { count: xlsxErrorCount } }}</span>
+          }
+        </p>
+
+        @if (xlsxStatus) {
+          <div class="rounded-xl bg-brand-50 border border-brand-100 px-4 py-2 text-sm font-medium text-brand-700 mb-3">
+            {{ xlsxStatus }}
+          </div>
+        }
+
+        <div class="flex gap-3">
+          <button (click)="submitXlsx()" [disabled]="xlsxImporting"
+            class="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition disabled:opacity-60 cursor-pointer">
+            {{ xlsxImporting ? (xlsxStatus || ('detail.importing' | transloco)) : ('detail.importN' | transloco: { count: xlsxValidCount }) }}
+          </button>
+          <button (click)="triggerXlsxInput()" [disabled]="xlsxImporting"
+            class="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+            {{ 'detail.changeFile' | transloco }}
+          </button>
+          <button (click)="closeXlsx()" [disabled]="xlsxImporting"
+            class="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+            {{ 'common.cancel' | transloco }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<!-- ═══ Excel import — skipped rows report ═══ -->
+@if (xlsxSkippedDetails.length) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="closeXlsxSkipped()">
+    <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
+    <div class="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-pop p-6 anim-pop" (click)="$event.stopPropagation()">
+      <div class="grid h-12 w-12 place-items-center rounded-xl bg-[#FEF3C7] text-[#D97706] mx-auto mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+      </div>
+      <h3 class="text-center font-bold text-ink text-lg">{{ 'detail.skippedTitle' | transloco: { count: xlsxSkippedDetails.length } }}</h3>
+      <p class="text-center text-sm text-ink-muted mt-1 mb-4">{{ 'detail.skippedSub' | transloco }}</p>
+
+      <div class="rounded-xl border border-line overflow-hidden max-h-72 overflow-y-auto">
+        @for (item of xlsxSkippedDetails; track $index) {
+          <div class="flex items-start gap-3 px-4 py-2.5 border-t border-line first:border-t-0">
+            <span class="shrink-0 grid h-6 w-6 place-items-center rounded-lg bg-[#FEF3C7] text-[#D97706] text-[10px] font-bold mt-0.5">{{ $index + 1 }}</span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-ink truncate">{{ item.name || ('detail.noName' | transloco) }}</p>
+              <p class="text-xs text-ink-muted mt-0.5">{{ item.reason }}</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      <button (click)="closeXlsxSkipped()"
+        class="w-full mt-5 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+        {{ 'detail.close' | transloco }}
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ═══ Excel import — duplicate clients report (نفس الاسم + نفس الوحدة) ═══ -->
+@if (xlsxDuplicateDetails.length) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="closeXlsxDuplicates()">
+    <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
+    <div class="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-pop p-6 anim-pop" (click)="$event.stopPropagation()">
+      <div class="grid h-12 w-12 place-items-center rounded-xl bg-[#DBEAFE] text-[#2563EB] mx-auto mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h3 class="text-center font-bold text-ink text-lg">{{ 'detail.duplicateTitle' | transloco: { count: xlsxDuplicateDetails.length } }}</h3>
+      <p class="text-center text-sm text-ink-muted mt-1 mb-4">{{ 'detail.duplicateSub' | transloco }}</p>
+
+      <div class="rounded-xl border border-line overflow-hidden max-h-72 overflow-y-auto">
+        @for (item of xlsxDuplicateDetails; track $index) {
+          <div class="flex items-start gap-3 px-4 py-2.5 border-t border-line first:border-t-0">
+            <span class="shrink-0 grid h-6 w-6 place-items-center rounded-lg bg-[#DBEAFE] text-[#2563EB] text-[10px] font-bold mt-0.5">{{ $index + 1 }}</span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-ink truncate">{{ item.name || ('detail.noName' | transloco) }}</p>
+              <p class="text-xs text-ink-muted mt-0.5">{{ 'detail.duplicateUnit' | transloco: { unit: item.unit } }}</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      <button (click)="closeXlsxDuplicates()"
+        class="w-full mt-5 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+        {{ 'detail.close' | transloco }}
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ═══ Add client modal ═══ -->
+@if (addOpen) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="closeAdd()">
+    <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
+    <div class="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-pop p-6 anim-pop max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+      <h3 class="font-bold text-ink text-lg mb-5">{{ 'detail.addClientTitle' | transloco }}</h3>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.clientName' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <input type="text" [(ngModel)]="addName" placeholder="محمد عبدالله"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.email' | transloco }}</label>
+          <input type="email" [(ngModel)]="addEmail" placeholder="client@email.com" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.phone' | transloco }}</label>
+          <input type="tel" [(ngModel)]="addPhone" placeholder="05XXXXXXXX" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.whatsapp' | transloco }}</label>
+          <input type="tel" [(ngModel)]="addWhatsapp" placeholder="05XXXXXXXX" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+          <p class="text-[11px] text-ink-faint mt-1">{{ 'detail.whatsappHint' | transloco }}</p>
+        </div>
+        <div>
+          <span class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.gender' | transloco }}</span>
+          <div class="flex gap-2">
+            <label class="flex-1 flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm cursor-pointer transition"
+                   [class.border-brand]="addGender === 'male'" [class.bg-brand-50]="addGender === 'male'" [class.text-brand-700]="addGender === 'male'"
+                   [class.border-line]="addGender !== 'male'" [class.text-ink-muted]="addGender !== 'male'">
+              <input type="radio" name="addGender" value="male" [(ngModel)]="addGender" class="sr-only" />
+              {{ 'detail.male' | transloco }}
+            </label>
+            <label class="flex-1 flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm cursor-pointer transition"
+                   [class.border-brand]="addGender === 'female'" [class.bg-brand-50]="addGender === 'female'" [class.text-brand-700]="addGender === 'female'"
+                   [class.border-line]="addGender !== 'female'" [class.text-ink-muted]="addGender !== 'female'">
+              <input type="radio" name="addGender" value="female" [(ngModel)]="addGender" class="sr-only" />
+              {{ 'detail.female' | transloco }}
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.unitCode' | transloco }}</label>
+          <input type="text" [(ngModel)]="addUnitCode" placeholder="A-101"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.unitPrice' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <input type="number" [(ngModel)]="addUnitPrice" (ngModelChange)="onAddPriceChange()" placeholder="500000" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.firstInstallmentDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <input type="date" [(ngModel)]="addFirstPaymentDate" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.installmentsCount' | transloco }}</label>
+          <input type="number" min="1" max="60" [(ngModel)]="addInstallmentsCount" (ngModelChange)="onInstallmentsCountChange()" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+
+        <!-- خطة الدفعات — موزّعة تلقائياً بالتساوي على عدد الدفعات المحدد خلال السنة، وقابلة للتعديل الكامل -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-ink-muted">{{ 'detail.installmentPlan' | transloco }}</span>
+            <button type="button" (click)="autoSplitInstallments()" [disabled]="!addUnitPrice"
+              class="text-[11px] font-semibold text-brand hover:text-brand-600 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+              {{ 'detail.autoSplit' | transloco }}
+            </button>
+          </div>
+          <p class="text-[11px] text-ink-faint mb-2">{{ 'detail.installmentPlanHint' | transloco }}</p>
+
+          <div class="space-y-1.5">
+            @for (row of addInstallments; track $index) {
+              <div class="flex items-center gap-1.5">
+                <span class="w-11 shrink-0 text-[11px] text-ink-faint">{{ $index + 1 }}.</span>
+                <input type="number" [(ngModel)]="row.percent" (ngModelChange)="onAddPercentEdit($index)"
+                  placeholder="%" dir="ltr" [title]="'detail.percent' | transloco"
+                  class="w-14 shrink-0 rounded-lg border border-line bg-canvas px-1.5 py-1.5 text-sm text-ink text-center focus:outline-none focus:border-brand focus:bg-white transition" />
+                <span class="shrink-0 text-xs text-ink-faint">%</span>
+                <input type="number" [(ngModel)]="row.amount" (ngModelChange)="onAddAmountEdit($index)"
+                  [placeholder]="'detail.amount' | transloco" dir="ltr"
+                  class="flex-1 min-w-0 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+                <button type="button" (click)="removeInstallmentRow($index)" [disabled]="addInstallments.length <= 1"
+                  [title]="'detail.removeInstallment' | transloco"
+                  class="shrink-0 grid h-7 w-7 place-items-center rounded-lg text-ink-faint hover:bg-[#FEF2F2] hover:text-[#DC2626] transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  <app-icon name="close" cls="h-3.5 w-3.5" />
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="mt-3 flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold"
+               [class.bg-[#ECFDF5]]="addInstallmentsRemaining === 0"
+               [class.text-[#16A34A]]="addInstallmentsRemaining === 0"
+               [class.bg-[#FEF2F2]]="addInstallmentsRemaining !== 0"
+               [class.text-[#DC2626]]="addInstallmentsRemaining !== 0">
+            <span class="tnum">{{ 'detail.total' | transloco }}: {{ fmt(addInstallmentsTotal) }}</span>
+            @if (addInstallmentsRemaining !== 0) {
+              <span class="tnum">{{ 'detail.remainingToDistribute' | transloco }}: {{ fmt(addInstallmentsRemaining) }}</span>
+            } @else {
+              <span>✓ {{ 'detail.matchesPrice' | transloco }}</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-6">
+        <button (click)="submitAdd()" [disabled]="!addValid || addSaving"
+          class="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2">
+          @if (addSaving) {
+            <span class="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+            {{ 'common.saving' | transloco }}
+          } @else {
+            {{ 'detail.addingClient' | transloco }}
+          }
+        </button>
+        <button (click)="closeAdd()"
+          class="flex-1 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+          {{ 'common.cancel' | transloco }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Bulk WhatsApp reminders queue ═══ -->
+@if (waQueueOpen && waQueueCurrent) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="closeWhatsAppQueue()">
+    <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
+    <div class="relative z-10 w-full max-w-sm rounded-2xl bg-white shadow-pop p-6 anim-pop" (click)="$event.stopPropagation()">
+      <div class="grid h-12 w-12 place-items-center rounded-xl bg-[#F0FDF9] text-[#25D366] mx-auto mb-4">
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+      </div>
+      <h3 class="text-center font-bold text-ink text-lg">{{ 'detail.waQueueTitle' | transloco }}</h3>
+      <p class="text-center text-xs text-ink-faint mt-1 mb-4">{{ 'detail.waQueueProgress' | transloco: { current: waQueueIndex + 1, total: waQueue.length } }}</p>
+
+      <div class="rounded-xl bg-canvas border border-line p-4 text-center">
+        <p class="font-bold text-ink">{{ waQueueCurrent.client_name }}</p>
+        <p class="text-xs text-ink-muted mt-1">{{ 'detail.unit' | transloco }} {{ waQueueCurrent.fields['unit_code'] || '—' }} · <span dir="ltr">{{ clientWhatsApp(waQueueCurrent) }}</span></p>
+      </div>
+
+      <div class="flex gap-3 mt-5">
+        <button (click)="sendCurrentWhatsApp()"
+          class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#25D366] py-2.5 text-sm font-semibold text-white hover:bg-[#1EBE5A] transition cursor-pointer">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          {{ 'detail.waOpenAndSend' | transloco }}
+        </button>
+        <button (click)="skipCurrentWhatsApp()"
+          class="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+          {{ 'detail.skip' | transloco }}
+        </button>
+      </div>
+      <button (click)="closeWhatsAppQueue()"
+        class="w-full mt-3 text-xs text-ink-faint hover:text-ink-muted transition cursor-pointer">
+        {{ 'detail.close' | transloco }}
+      </button>
+    </div>
+  </div>
+}

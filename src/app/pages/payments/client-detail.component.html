@@ -1,0 +1,567 @@
+<main class="flex-1 min-w-0 px-4 sm:px-5 lg:px-8 py-6 space-y-6 max-w-2xl">
+
+  <!-- Back -->
+  <button type="button" (click)="back()"
+    class="flex items-center gap-2 text-sm text-ink-muted hover:text-ink transition shrink-0">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+    {{ projectName() }}
+  </button>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center min-h-[40vh]">
+      <div class="h-8 w-8 rounded-full border-4 border-brand border-t-transparent animate-spin"></div>
+    </div>
+  }
+
+  @if (!loading() && !contract()) {
+    <div class="flex flex-col items-center justify-center min-h-[40vh] text-center gap-2">
+      <p class="text-sm font-semibold text-ink-muted">{{ 'detail.clientNotFound' | transloco }}</p>
+    </div>
+  }
+
+  @if (!loading() && contract(); as c) {
+
+    <!-- Profile -->
+    <section class="flex flex-col sm:flex-row items-start gap-5">
+      <div class="h-20 w-20 rounded-2xl bg-brand text-white grid place-items-center shrink-0 text-2xl font-bold">
+        {{ c.client_name.charAt(0) }}
+      </div>
+      <div class="flex-1 min-w-0 space-y-1">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h2 class="text-xl font-bold text-ink">{{ c.client_name }}</h2>
+          @if (c.fields['gender']) {
+            <span class="text-sm text-ink-faint">({{ ('detail.' + c.fields['gender']) | transloco }})</span>
+          }
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 text-brand-700 px-2.5 py-1 text-sm font-bold">
+            <app-icon name="building" cls="h-3.5 w-3.5" />
+            {{ c.fields['unit_code'] || '—' }}
+          </span>
+        </div>
+        <p class="flex items-center gap-1.5 text-sm font-semibold text-ink" dir="ltr">
+          <app-icon name="mail" cls="h-3.5 w-3.5 text-ink-faint shrink-0" />
+          {{ clientEmail(c) || '—' }}
+        </p>
+        <p class="text-2xl font-bold tnum text-brand pt-1">
+          {{ fmt(c.unit_price) }} <span class="text-sm font-semibold text-ink-muted">{{ 'common.sar' | transloco }}</span>
+        </p>
+
+        <!-- Contact + edit -->
+        <div class="flex items-center flex-wrap gap-2 pt-3">
+          @if (emailHref(c)) {
+            <a [href]="emailHref(c)" target="_blank" rel="noopener"
+              class="grid h-10 w-10 place-items-center rounded-xl border border-line text-ink-muted hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700 transition cursor-pointer"
+              [title]="('detail.email' | transloco) + ' · ' + clientEmail(c)">
+              <app-icon name="mail" cls="h-4 w-4" />
+            </a>
+          }
+          @if (callHref(c)) {
+            <a [href]="callHref(c)"
+              class="grid h-10 w-10 place-items-center rounded-xl border border-line text-brand hover:bg-brand-50 hover:border-brand-200 transition cursor-pointer"
+              [title]="('detail.call' | transloco) + ' · ' + clientCallNumber(c)">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+            </a>
+          }
+          @if (clientWhatsApp(c)) {
+            <button type="button" (click)="openWhatsApp(c)"
+              class="grid h-10 w-10 place-items-center rounded-xl border border-line text-[#25D366] hover:bg-[#F0FDF9] hover:border-[#25D366] transition cursor-pointer"
+              [title]="('detail.sendWaReminders' | transloco) + ' · ' + clientWhatsApp(c)">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+            </button>
+          }
+          @if (auth.canManagePayments) {
+            <button type="button" (click)="openEdit()"
+              class="flex items-center gap-2 rounded-xl border border-line px-4 h-10 text-sm font-semibold text-ink-muted hover:bg-canvas hover:text-ink transition cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              {{ 'detail.editClient' | transloco }}
+            </button>
+            <button type="button" (click)="openRenew()"
+              class="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 h-10 text-sm font-semibold text-brand-700 hover:bg-brand-100 transition cursor-pointer">
+              {{ 'detail.renewYear' | transloco }}
+            </button>
+            <button type="button" (click)="openReplace()"
+              class="flex items-center gap-2 rounded-xl bg-brand px-4 h-10 text-sm font-semibold text-white hover:bg-brand-600 transition cursor-pointer">
+              {{ 'detail.replaceClient' | transloco }}
+            </button>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress + remaining -->
+    <section class="rounded-2xl bg-white border border-line shadow-card p-4">
+      <div class="flex items-center gap-3">
+        <div class="flex-1">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs text-ink-muted">{{ 'detail.collection' | transloco }}</span>
+            <span class="text-xs font-bold text-ink tnum">{{ paidCount(c) }} / {{ c.payments.length }}</span>
+          </div>
+          <div class="h-1.5 w-full rounded-full bg-line overflow-hidden">
+            <div class="h-full rounded-full bg-brand transition-all duration-500" [style.width]="progressWidth(c)"></div>
+          </div>
+        </div>
+        <div class="text-end shrink-0">
+          <p class="text-[10px] text-ink-muted">{{ 'detail.remaining' | transloco }}</p>
+          <p class="text-sm font-bold tnum"
+             [class.text-[#16A34A]]="remaining(c) === 0"
+             [class.text-[#DC2626]]="remaining(c) > 0">
+            {{ fmt(remaining(c)) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Payments list -->
+    <section class="space-y-2">
+      @for (p of c.payments; track p.id) {
+      <div class="flex items-center gap-2">
+
+        @if (p.paid) {
+          <div class="flex-1 min-w-0 flex items-center flex-wrap gap-2 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-2.5 transition-all duration-300">
+            <div class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#ECFDF5] text-[#16A34A]">
+              <app-icon name="check" cls="h-4 w-4" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-ink">{{ 'payments.installment' | transloco }} {{ p.installment_number }}</p>
+              <p class="text-xs text-ink-muted tnum inline-flex items-center gap-1">
+                {{ formatDate(p.due_date) }}
+              </p>
+            </div>
+            <div class="flex items-center flex-wrap justify-end gap-2 ms-auto max-w-full">
+              <p class="text-sm font-bold tnum text-ink">{{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+              <button (click)="toggle(p, c)"
+                class="shrink-0 rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-semibold text-ink-muted hover:border-[#DC2626] hover:text-[#DC2626] transition cursor-pointer">
+                {{ 'detail.cancelPayment' | transloco }}
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (!p.paid && isOverdue(p)) {
+          <div class="flex-1 min-w-0 flex items-center flex-wrap gap-2 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-3 py-2.5 transition-all duration-300">
+            <div class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#FEE2E2] text-[#DC2626]">
+              <app-icon name="alert" cls="h-4 w-4" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-ink">{{ 'payments.installment' | transloco }} {{ p.installment_number }}</p>
+              <p class="text-xs text-[#DC2626] tnum inline-flex items-center gap-1">
+                {{ formatDate(p.due_date) }} — {{ 'detail.due' | transloco }}
+              </p>
+              @if (p.last_reminded_at) {
+                <span class="inline-flex items-center gap-1 mt-1 rounded-md bg-white border border-white/60 shadow-sm px-2 py-0.5 text-[10px] font-semibold text-[#DC2626]">
+                  {{ 'detail.reminderSent' | transloco }}
+                </span>
+              }
+            </div>
+            <div class="flex items-center flex-wrap justify-end gap-2 ms-auto max-w-full">
+              @if (isPartiallyPaid(p)) {
+                <div class="text-end">
+                  <p class="text-sm font-bold tnum text-ink">{{ fmt(p.paid_amount) }} / {{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+                  <p class="text-[10px] text-[#DC2626] tnum">{{ 'detail.remaining' | transloco }}: {{ fmt(remainingOf(p)) }}</p>
+                </div>
+              } @else {
+                <p class="text-sm font-bold tnum text-ink">{{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+              }
+              @if (canRemind(p)) {
+                <button (click)="sendEarlyReminder(p, c)" [disabled]="!!remindingId || p.reminder_count >= 2"
+                  class="shrink-0 rounded-lg border border-[#FCA5A5] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#DC2626] hover:bg-[#FEE2E2] transition cursor-pointer disabled:opacity-50">
+                  @if (remindingId === p.id) { <span>...</span> }
+                  @else if (p.reminder_count >= 2) { <span>{{ 'detail.reminderMax' | transloco: { count: p.reminder_count } }}</span> }
+                  @else if (p.reminder_count > 0) { <span>{{ 'detail.reminderBtnCount' | transloco: { count: p.reminder_count } }}</span> }
+                  @else { <span>{{ 'detail.reminderBtn' | transloco }}</span> }
+                </button>
+              }
+              <button (click)="toggle(p, c)"
+                class="shrink-0 rounded-lg bg-[#DC2626] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#b91c1c] transition cursor-pointer">
+                {{ 'detail.registerPayment' | transloco }}
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (!p.paid && isDueToday(p)) {
+          <div class="flex-1 min-w-0 flex items-center flex-wrap gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2.5 transition-all duration-300">
+            <div class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-100 text-brand-700">
+              <app-icon name="alert" cls="h-4 w-4" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-ink">{{ 'payments.installment' | transloco }} {{ p.installment_number }}</p>
+              <p class="text-xs text-brand-700 tnum inline-flex items-center gap-1">
+                {{ formatDate(p.due_date) }} — {{ 'detail.dueToday' | transloco }}
+              </p>
+              @if (p.last_reminded_at) {
+                <span class="inline-flex items-center gap-1 mt-1 rounded-md bg-white border border-white/60 shadow-sm px-2 py-0.5 text-[10px] font-semibold text-brand-700">
+                  {{ 'detail.reminderSent' | transloco }}
+                </span>
+              }
+            </div>
+            <div class="flex items-center flex-wrap justify-end gap-2 ms-auto max-w-full">
+              @if (isPartiallyPaid(p)) {
+                <div class="text-end">
+                  <p class="text-sm font-bold tnum text-ink">{{ fmt(p.paid_amount) }} / {{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+                  <p class="text-[10px] text-brand-700 tnum">{{ 'detail.remaining' | transloco }}: {{ fmt(remainingOf(p)) }}</p>
+                </div>
+              } @else {
+                <p class="text-sm font-bold tnum text-ink">{{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+              }
+              @if (canRemind(p)) {
+                <button (click)="sendEarlyReminder(p, c)" [disabled]="!!remindingId || p.reminder_count >= 2"
+                  class="shrink-0 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition cursor-pointer disabled:opacity-50">
+                  @if (remindingId === p.id) { <span>...</span> }
+                  @else if (p.reminder_count >= 2) { <span>{{ 'detail.reminderMax' | transloco: { count: p.reminder_count } }}</span> }
+                  @else if (p.reminder_count > 0) { <span>{{ 'detail.reminderBtnCount' | transloco: { count: p.reminder_count } }}</span> }
+                  @else { <span>{{ 'detail.reminderBtn' | transloco }}</span> }
+                </button>
+              }
+              <button (click)="toggle(p, c)"
+                class="shrink-0 rounded-lg bg-brand px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 transition cursor-pointer">
+                {{ 'detail.registerPayment' | transloco }}
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (!p.paid && isDueSoon(p) && !isOverdue(p)) {
+          <div class="flex-1 min-w-0 flex items-center flex-wrap gap-2 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2.5 transition-all duration-300">
+            <div class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#FEF3C7] text-[#D97706]">
+              <app-icon name="alert" cls="h-4 w-4" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-ink">{{ 'payments.installment' | transloco }} {{ p.installment_number }}</p>
+              <p class="text-xs text-[#D97706] tnum inline-flex items-center gap-1">
+                {{ formatDate(p.due_date) }} — {{ 'detail.soon' | transloco }}
+              </p>
+              @if (p.last_reminded_at) {
+                <span class="inline-flex items-center gap-1 mt-1 rounded-md bg-white border border-white/60 shadow-sm px-2 py-0.5 text-[10px] font-semibold text-[#D97706]">
+                  {{ 'detail.reminderSent' | transloco }}
+                </span>
+              }
+            </div>
+            <div class="flex items-center flex-wrap justify-end gap-2 ms-auto max-w-full">
+              @if (isPartiallyPaid(p)) {
+                <div class="text-end">
+                  <p class="text-sm font-bold tnum text-ink">{{ fmt(p.paid_amount) }} / {{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+                  <p class="text-[10px] text-[#D97706] tnum">{{ 'detail.remaining' | transloco }}: {{ fmt(remainingOf(p)) }}</p>
+                </div>
+              } @else {
+                <p class="text-sm font-bold tnum text-ink">{{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+              }
+              @if (canRemind(p)) {
+                <button (click)="sendEarlyReminder(p, c)" [disabled]="!!remindingId || p.reminder_count >= 2"
+                  class="shrink-0 rounded-lg border border-[#FDE68A] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#D97706] hover:bg-[#FEF3C7] transition cursor-pointer disabled:opacity-50">
+                  @if (remindingId === p.id) { <span>...</span> }
+                  @else if (p.reminder_count >= 2) { <span>{{ 'detail.reminderMax' | transloco: { count: p.reminder_count } }}</span> }
+                  @else if (p.reminder_count > 0) { <span>{{ 'detail.reminderBtnCount' | transloco: { count: p.reminder_count } }}</span> }
+                  @else { <span>{{ 'detail.reminderBtn' | transloco }}</span> }
+                </button>
+              }
+              <button (click)="toggle(p, c)"
+                class="shrink-0 rounded-lg bg-[#D97706] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#B45309] transition cursor-pointer">
+                {{ 'detail.registerPayment' | transloco }}
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (!p.paid && !isOverdue(p) && !isDueToday(p) && !isDueSoon(p)) {
+          <div class="flex-1 min-w-0 flex items-center flex-wrap gap-2 rounded-xl border border-line bg-white px-3 py-2.5 opacity-75 transition-all duration-300">
+            <div class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-canvas text-ink-faint">
+              <app-icon name="calOut" cls="h-4 w-4" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-ink">{{ 'payments.installment' | transloco }} {{ p.installment_number }}</p>
+              <p class="text-xs text-ink-muted tnum inline-flex items-center gap-1">
+                {{ formatDate(p.due_date) }}
+              </p>
+            </div>
+            <div class="flex items-center flex-wrap justify-end gap-2 ms-auto max-w-full">
+              @if (isPartiallyPaid(p)) {
+                <div class="text-end">
+                  <p class="text-sm font-bold tnum text-ink">{{ fmt(p.paid_amount) }} / {{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+                  <p class="text-[10px] text-ink-muted tnum">{{ 'detail.remaining' | transloco }}: {{ fmt(remainingOf(p)) }}</p>
+                </div>
+              } @else {
+                <p class="text-sm font-bold tnum text-ink">{{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
+              }
+              @if (canRemind(p)) {
+                <button (click)="sendEarlyReminder(p, c)" [disabled]="!!remindingId || p.reminder_count >= 2"
+                  class="shrink-0 rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-semibold text-ink-muted hover:border-brand hover:text-brand transition cursor-pointer disabled:opacity-50">
+                  @if (remindingId === p.id) { <span>...</span> }
+                  @else if (p.reminder_count >= 2) { <span>{{ 'detail.reminderMax' | transloco: { count: p.reminder_count } }}</span> }
+                  @else if (p.reminder_count > 0) { <span>{{ 'detail.reminderBtnCount' | transloco: { count: p.reminder_count } }}</span> }
+                  @else { <span>{{ 'detail.reminderBtn' | transloco }}</span> }
+                </button>
+              }
+              <button (click)="toggle(p, c)"
+                class="shrink-0 rounded-lg border border-brand text-brand px-2.5 py-1.5 text-xs font-semibold hover:bg-brand hover:text-white transition cursor-pointer">
+                {{ 'detail.registerPayment' | transloco }}
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (auth.canManagePayments && !p.paid) {
+          <button type="button" (click)="openPaymentNote(p)" [title]="'detail.paymentNote' | transloco"
+            class="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand text-white hover:bg-brand-600 transition cursor-pointer">
+            <app-icon name="doc" cls="h-5 w-5" />
+            @if (p.notes.length) {
+              <span class="absolute -top-1.5 -end-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-white border border-brand px-1 text-[9px] font-bold text-brand-700">{{ p.notes.length }}</span>
+            }
+          </button>
+        }
+      </div>
+      }
+    </section>
+
+    <!-- Archive -->
+    @if (archive().length) {
+      <section class="space-y-2 pt-2">
+        <h3 class="text-sm font-bold text-ink">{{ 'detail.archiveTitle' | transloco }}</h3>
+        @for (a of archive(); track a.id) {
+          <div class="rounded-xl border border-line bg-white">
+            <button type="button" (click)="toggleArchive(a.id)" class="w-full flex items-center gap-3 px-3 py-2.5 text-start cursor-pointer">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-ink truncate">{{ a.client_name }}</p>
+                <p class="text-[11px] text-ink-muted tnum">
+                  {{ (a.reason === 'replaced' ? 'detail.archiveReplaced' : 'detail.archiveRenewed') | transloco }} · {{ archiveDate(a.archived_at) }}
+                </p>
+              </div>
+              <div class="text-end shrink-0">
+                <p class="text-xs font-bold tnum text-ink">{{ archivePaidCount(a) }} / {{ a.payments.length }}</p>
+                <p class="text-[10px] text-ink-muted tnum">{{ fmt(archivePaidTotal(a)) }} / {{ fmt(a.unit_price) }}</p>
+              </div>
+            </button>
+            @if (openArchiveId === a.id) {
+              <div class="border-t border-line px-3 py-3 space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs [&_p]:min-w-0 [&_p]:break-words">
+                  <p><span class="text-ink-muted">{{ 'detail.unitCode' | transloco }}:</span> <span class="font-semibold text-ink">{{ a.fields['unit_code'] || '—' }}</span></p>
+                  <p><span class="text-ink-muted">{{ 'detail.firstInstallmentDate' | transloco }}:</span> <span class="font-semibold text-ink tnum">{{ a.contract_date ? formatDate(a.contract_date) : '—' }}</span></p>
+                  <p><span class="text-ink-muted">{{ 'detail.phone' | transloco }}:</span> <span class="font-semibold text-ink tnum" dir="ltr">{{ a.fields['phone'] || '—' }}</span></p>
+                  <p><span class="text-ink-muted">{{ 'detail.email' | transloco }}:</span> <span class="font-semibold text-ink" dir="ltr">{{ a.fields['email'] || '—' }}</span></p>
+                </div>
+                <div class="space-y-1.5">
+                  @for (p of a.payments; track p.id) {
+                    <div class="rounded-lg bg-canvas px-3 py-2">
+                      <div class="flex items-center gap-2 text-xs">
+                        <span class="font-semibold text-ink">{{ 'payments.installment' | transloco }} {{ p.installment_number }}</span>
+                        <span class="text-ink-muted tnum">{{ formatDate(p.due_date) }}</span>
+                        <span class="ms-auto font-bold tnum" [class.text-[#16A34A]]="p.paid" [class.text-ink]="!p.paid">
+                          {{ fmt(p.paid ? p.amount : (p.paid_amount ?? 0)) }} / {{ fmt(p.amount) }}
+                        </span>
+                      </div>
+                      @for (n of (p.notes ?? []); track $index) {
+                        <p class="text-[11px] text-ink-muted mt-1"><span class="tnum font-semibold text-brand-700">{{ formatDate(n.date) }}</span> — {{ n.text }}</p>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+  }
+
+</main>
+
+<!-- ═══ Note + partial payment ═══ -->
+@if (notePaymentTarget) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="cancelPaymentNote()">
+    <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
+    <div class="relative z-10 w-full max-w-sm rounded-2xl bg-white shadow-pop p-6 anim-pop" (click)="$event.stopPropagation()">
+      <div class="grid h-12 w-12 place-items-center rounded-xl bg-brand-50 text-brand-700 mx-auto mb-4">
+        <app-icon name="doc" cls="h-6 w-6" />
+      </div>
+      <h3 class="text-center font-bold text-ink text-lg">{{ 'detail.paymentNote' | transloco }}</h3>
+      <p class="text-center text-sm text-ink-muted mt-1">{{ contract()?.client_name }} · {{ installmentLabel(notePaymentTarget) }}</p>
+
+      <div class="mt-4 space-y-4">
+        <div>
+          <span class="text-xs font-semibold text-ink-muted">{{ 'detail.amountPaidSoFar' | transloco }} ({{ 'common.sar' | transloco }})</span>
+          <div class="mt-1.5 flex gap-2">
+            <input type="number" [(ngModel)]="notePaymentAmount" dir="ltr" [disabled]="savingNote"
+              class="min-w-0 flex-1 rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition disabled:opacity-50" />
+            <button type="button" (click)="savePaymentAmount()" [disabled]="savingNote"
+              class="shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-600 transition disabled:opacity-50 cursor-pointer">
+              {{ 'common.save' | transloco }}
+            </button>
+          </div>
+          <p class="text-[11px] text-ink-faint mt-1">
+            {{ 'detail.remaining' | transloco }}: {{ fmt(notePaymentRemaining) }} {{ 'common.sar' | transloco }}
+          </p>
+        </div>
+
+        <div>
+          <span class="text-xs font-semibold text-ink-muted">{{ 'detail.notes' | transloco }}</span>
+          <div class="mt-1.5 space-y-2 max-h-52 overflow-y-auto">
+            @for (n of notePaymentTarget.notes; track $index) {
+              <div class="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2">
+                <p class="text-[10px] font-semibold text-brand-700 tnum">{{ formatDate(n.date) }}</p>
+                <p class="text-sm text-ink whitespace-pre-wrap break-words mt-0.5">{{ n.text }}</p>
+              </div>
+            } @empty {
+              <p class="text-xs text-ink-faint">{{ 'detail.noNotes' | transloco }}</p>
+            }
+          </div>
+        </div>
+
+        <div>
+          <textarea [(ngModel)]="notePaymentNote" rows="2" [placeholder]="'detail.notePlaceholder' | transloco"
+            [disabled]="savingNote"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition disabled:opacity-50 resize-none"></textarea>
+          <button type="button" (click)="addPaymentNote()" [disabled]="savingNote || !notePaymentNote.trim()"
+            class="mt-2 w-full rounded-xl bg-brand py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition disabled:opacity-50 cursor-pointer">
+            + {{ 'detail.addNote' | transloco }}
+          </button>
+        </div>
+      </div>
+
+      <button (click)="cancelPaymentNote()"
+        class="mt-4 w-full rounded-xl border border-line py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+        {{ 'detail.close' | transloco }}
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ═══ Edit client modal ═══ -->
+@if (editOpen) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="cancelEdit()">
+    <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
+    <div class="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-pop p-6 anim-pop max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+      <h3 class="font-bold text-ink text-lg" [class.mb-5]="editMode === 'edit'" [class.mb-1]="editMode !== 'edit'">
+        {{ (editMode === 'replace' ? 'detail.replaceClientTitle' : editMode === 'renew' ? 'detail.renewYearTitle' : 'detail.editClientTitle') | transloco }}
+      </h3>
+      @if (editMode !== 'edit') {
+        <p class="text-xs text-ink-muted mb-5">{{ (editMode === 'replace' ? 'detail.replaceClientHint' : 'detail.renewYearHint') | transloco }}</p>
+      }
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.clientName' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <input type="text" [(ngModel)]="editName"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.email' | transloco }}</label>
+          <input type="email" [(ngModel)]="editEmail" placeholder="client@email.com" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.phone' | transloco }}</label>
+          <input type="tel" [(ngModel)]="editPhone" placeholder="05XXXXXXXX" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.whatsapp' | transloco }}</label>
+          <input type="tel" [(ngModel)]="editWhatsapp" placeholder="05XXXXXXXX" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+          <p class="text-[11px] text-ink-faint mt-1">{{ 'detail.whatsappHint' | transloco }}</p>
+        </div>
+        <div>
+          <span class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.gender' | transloco }}</span>
+          <div class="flex gap-2">
+            <label class="flex-1 flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm cursor-pointer transition"
+                   [class.border-brand]="editGender === 'male'" [class.bg-brand-50]="editGender === 'male'" [class.text-brand-700]="editGender === 'male'"
+                   [class.border-line]="editGender !== 'male'" [class.text-ink-muted]="editGender !== 'male'">
+              <input type="radio" name="editGenderCd" value="male" [(ngModel)]="editGender" class="sr-only" />
+              {{ 'detail.male' | transloco }}
+            </label>
+            <label class="flex-1 flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm cursor-pointer transition"
+                   [class.border-brand]="editGender === 'female'" [class.bg-brand-50]="editGender === 'female'" [class.text-brand-700]="editGender === 'female'"
+                   [class.border-line]="editGender !== 'female'" [class.text-ink-muted]="editGender !== 'female'">
+              <input type="radio" name="editGenderCd" value="female" [(ngModel)]="editGender" class="sr-only" />
+              {{ 'detail.female' | transloco }}
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.unitCode' | transloco }}</label>
+          <input type="text" [(ngModel)]="editUnitCode"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.unitPrice' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <input type="number" [(ngModel)]="editUnitPrice" (ngModelChange)="onEditPriceChange()" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.firstInstallmentDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <input type="date" [(ngModel)]="editContractDate"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.installmentsCount' | transloco }}</label>
+          <input type="number" min="1" max="60" [(ngModel)]="editInstallmentsCount" (ngModelChange)="onEditInstallmentsCountChange()" dir="ltr"
+            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+
+        <!-- خطة الدفعات — موزّعة تلقائياً بالتساوي على عدد الدفعات المحدد خلال السنة، وقابلة للتعديل الكامل -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-ink-muted">{{ 'detail.installmentPlan' | transloco }}</span>
+            <button type="button" (click)="autoSplitEditInstallments()" [disabled]="!editUnitPrice"
+              class="text-[11px] font-semibold text-brand hover:text-brand-600 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+              {{ 'detail.autoSplit' | transloco }}
+            </button>
+          </div>
+          <p class="text-[11px] text-ink-faint mb-2">{{ 'detail.installmentPlanHint' | transloco }}</p>
+
+          <div class="space-y-1.5">
+            @for (row of editInstallments; track $index) {
+              <div class="flex items-center gap-1.5">
+                <span class="w-11 shrink-0 text-[11px] text-ink-faint">{{ $index + 1 }}.</span>
+                <input type="number" [(ngModel)]="row.percent" (ngModelChange)="onEditPercentEdit($index)"
+                  placeholder="%" dir="ltr" [title]="'detail.percent' | transloco"
+                  class="w-14 shrink-0 rounded-lg border border-line bg-canvas px-1.5 py-1.5 text-sm text-ink text-center focus:outline-none focus:border-brand focus:bg-white transition" />
+                <span class="shrink-0 text-xs text-ink-faint">%</span>
+                <input type="number" [(ngModel)]="row.amount" (ngModelChange)="onEditAmountEdit($index)"
+                  [placeholder]="'detail.amount' | transloco" dir="ltr"
+                  class="flex-1 min-w-0 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+                <button type="button" (click)="removeEditInstallmentRow($index)" [disabled]="editInstallments.length <= 1"
+                  [title]="'detail.removeInstallment' | transloco"
+                  class="shrink-0 grid h-7 w-7 place-items-center rounded-lg text-ink-faint hover:bg-[#FEF2F2] hover:text-[#DC2626] transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  <app-icon name="close" cls="h-3.5 w-3.5" />
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="mt-3 flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold"
+               [class.bg-[#ECFDF5]]="editInstallmentsRemaining === 0"
+               [class.text-[#16A34A]]="editInstallmentsRemaining === 0"
+               [class.bg-[#FEF2F2]]="editInstallmentsRemaining !== 0"
+               [class.text-[#DC2626]]="editInstallmentsRemaining !== 0">
+            <span class="tnum">{{ 'detail.total' | transloco }}: {{ fmt(editInstallmentsTotal) }}</span>
+            @if (editInstallmentsRemaining !== 0) {
+              <span class="tnum">{{ 'detail.remainingToDistribute' | transloco }}: {{ fmt(editInstallmentsRemaining) }}</span>
+            } @else {
+              <span>✓ {{ 'detail.matchesPrice' | transloco }}</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-6">
+        <button (click)="saveEdit()" [disabled]="!editValid || saving"
+          class="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition disabled:opacity-50 cursor-pointer">
+          {{ saving ? ('common.saving' | transloco) : ('common.save' | transloco) }}
+        </button>
+        <button (click)="cancelEdit()" [disabled]="saving"
+          class="flex-1 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer disabled:opacity-50">
+          {{ 'common.cancel' | transloco }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
