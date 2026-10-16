@@ -6,16 +6,17 @@ import { Subscription } from 'rxjs';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { IconComponent } from '../../core/icon/icon.component';
+import { DateInputComponent } from '../../core/date-input/date-input.component';
 import { SupabaseService, ContractWithPayments, PaymentRow, ArchivedContract, SUPABASE_URL } from '../../core/supabase.service';
 import { ToastService } from '../../core/toast.service';
 import { AuthService } from '../../core/auth.service';
 import { buildReminderMessage, paymentLabelAr } from '../../core/reminder-message';
-import { daysDiffFromToday } from '../../core/date-utils';
+import { addYearIso, daysDiffFromToday, monthsBetween, spreadInstallmentDates } from '../../core/date-utils';
 
 @Component({
   selector: 'app-client-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, TranslocoModule],
+  imports: [CommonModule, FormsModule, IconComponent, DateInputComponent, TranslocoModule],
   templateUrl: './client-detail.component.html',
 })
 export class ClientDetailComponent implements OnInit, OnDestroy {
@@ -88,9 +89,13 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
   isDueSoon(p: PaymentRow): boolean {
     return !p.paid && daysDiffFromToday(p.due_date) === 3;
   }
-  canRemind(p: PaymentRow): boolean {
-    if (p.paid) return false;
-    return daysDiffFromToday(p.due_date) <= 20;
+  /** تاريخ نهاية الإيجار — المخزَّن مع العقد، أو بعد سنة من البداية للعقود القديمة بلا تاريخ نهاية */
+  endDateOf(c: ContractWithPayments): string {
+    return c.fields?.['end_date'] || addYearIso(c.contract_date ?? '');
+  }
+  /** مدة الإيجار بالأشهر الكاملة (0 لو التواريخ غير مكتملة) */
+  rentMonths(c: ContractWithPayments): number {
+    return monthsBetween(c.contract_date ?? '', this.endDateOf(c));
   }
   fmt(n: number): string { return n.toLocaleString('en-US'); }
   formatDate(iso: string): string {
@@ -162,13 +167,15 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
   }
 
   openPaymentNote(p: PaymentRow) {
-    if (!this.auth.canManagePayments || p.paid) return;
+    if (!this.auth.canManagePayments) return;
     this.notePaymentId = p.id;
     this.notePaymentAmount = String(p.paid_amount ?? 0);
     this.notePaymentNote = '';
+    this.resetNoteEditing();
   }
   cancelPaymentNote() {
     this.notePaymentId = null;
+    this.resetNoteEditing();
   }
 
   get notePaymentRemaining(): number {
@@ -176,27 +183,70 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     return t ? Math.max(0, t.amount - (Number(this.notePaymentAmount) || 0)) : 0;
   }
 
-  /** يضيف ملاحظة جديدة بتاريخ اليوم أسفل الملاحظات السابقة */
-  async addPaymentNote() {
+  /** يحفظ مصفوفة الملاحظات كاملة للدفعة المفتوحة ويحدّث الشاشة */
+  private async persistNotes(notes: { text: string; date: string }[], toastKey = 'detail.paymentNoteSavedToast'): Promise<boolean> {
     const c = this.contract();
     const target = this.notePaymentTarget;
-    const text = this.notePaymentNote.trim();
-    if (!target || !c || !text || this.savingNote || !this.auth.canManagePayments) return;
+    if (!target || !c || this.savingNote || !this.auth.canManagePayments) return false;
     this.savingNote = true;
-
-    const now = new Date();
-    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const notes = [...(target.notes ?? []), { text, date }];
-
     const ok = await this.supa.updatePayment(target.id, { notes });
     if (ok) {
       this.contract.set({ ...c, payments: c.payments.map(p => p.id !== target.id ? p : { ...p, notes }) });
-      this.notePaymentNote = '';
-      this.toast.success(this.transloco.translate('detail.paymentNoteSavedToast'), c.client_name);
+      this.toast.success(this.transloco.translate(toastKey), c.client_name);
     } else {
       this.toast.error(this.transloco.translate('detail.genericError'), this.transloco.translate('detail.changeNotSavedRetry'));
     }
     this.savingNote = false;
+    return ok;
+  }
+
+  /** يضيف ملاحظة جديدة بتاريخ اليوم أسفل الملاحظات السابقة */
+  async addPaymentNote() {
+    const target = this.notePaymentTarget;
+    const text = this.notePaymentNote.trim();
+    if (!target || !text) return;
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (await this.persistNotes([...(target.notes ?? []), { text, date }])) this.notePaymentNote = '';
+  }
+
+  // تعديل / حذف ملاحظة موجودة
+  editingNoteIndex: number | null = null;
+  editingNoteText = '';
+  deletingNoteIndex: number | null = null;
+
+  private resetNoteEditing() {
+    this.editingNoteIndex = null;
+    this.editingNoteText = '';
+    this.deletingNoteIndex = null;
+  }
+  startEditNote(i: number) {
+    const n = this.notePaymentTarget?.notes?.[i];
+    if (!n) return;
+    this.deletingNoteIndex = null;
+    this.editingNoteIndex = i;
+    this.editingNoteText = n.text;
+  }
+  cancelEditNote() { this.resetNoteEditing(); }
+  /** يحفظ نص الملاحظة المعدّلة مع الإبقاء على تاريخها الأصلي */
+  async saveEditedNote() {
+    const target = this.notePaymentTarget;
+    const i = this.editingNoteIndex;
+    const text = this.editingNoteText.trim();
+    if (!target || i === null || !text) return;
+    const notes = (target.notes ?? []).map((n, idx) => idx === i ? { ...n, text } : n);
+    if (await this.persistNotes(notes, 'detail.paymentNoteUpdatedToast')) this.resetNoteEditing();
+  }
+  askDeleteNote(i: number) {
+    this.editingNoteIndex = null;
+    this.deletingNoteIndex = i;
+  }
+  async confirmDeleteNote() {
+    const target = this.notePaymentTarget;
+    const i = this.deletingNoteIndex;
+    if (!target || i === null) return;
+    const notes = (target.notes ?? []).filter((_, idx) => idx !== i);
+    if (await this.persistNotes(notes, 'detail.paymentNoteDeletedToast')) this.resetNoteEditing();
   }
 
   async savePaymentAmount() {
@@ -218,24 +268,6 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
       this.toast.error(this.transloco.translate('detail.genericError'), this.transloco.translate('detail.changeNotSavedRetry'));
     }
     this.savingNote = false;
-  }
-
-  // ── Early reminder ────────────────────────────────────────────────────────────
-  remindingId = '';
-  async sendEarlyReminder(p: PaymentRow, c: ContractWithPayments) {
-    if (this.remindingId || p.reminder_count >= 2) return;
-    this.remindingId = p.id;
-    const res = await this.supa.sendEarlyReminder(p.id, this.projectName());
-    this.remindingId = '';
-    if (res.sent) {
-      p.last_reminded_at = new Date().toISOString();
-      p.reminder_count = res.reminder_count ?? (p.reminder_count + 1);
-      this.toast.success(this.transloco.translate('detail.reminderSentToast'), `${c.client_name} · ${p.reminder_count}/2`);
-    } else if (res.limit_reached) {
-      this.toast.error(this.transloco.translate('detail.reminderLimitReached'));
-    } else {
-      this.toast.error(this.transloco.translate(res.error?.includes('إيميل') ? 'detail.noEmailForClient' : 'detail.reminderFailed'));
-    }
   }
 
   /** إرسال كشف حساب تلقائي عبر Resend — معطَّل مؤقتاً من الواجهة لحد ما يتم توثيق دومين
@@ -388,8 +420,10 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
   editUnitCode = '';
   editUnitPrice = '';
   editContractDate = '';
+  editEndDate = '';
+  private editEndTouched = false;
   editInstallmentsCount = '12';
-  editInstallments: { amount: string; percent: string }[] = [];
+  editInstallments: { amount: string; percent: string; date: string }[] = [];
   private editAmountsTouched = true;
   /** edit = تعديل عادي، replace = تغيير العميل (أرشفة القديم)، renew = تجديد سنة جديدة (أرشفة السنة السابقة) */
   editMode: 'edit' | 'replace' | 'renew' = 'edit';
@@ -406,11 +440,14 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     this.editUnitCode = c.fields['unit_code'] ?? '';
     this.editUnitPrice = String(c.unit_price);
     this.editContractDate = c.contract_date ?? '';
+    this.editEndDate = c.fields['end_date'] || addYearIso(this.editContractDate);
+    this.editEndTouched = !!c.fields['end_date'];
     const sorted = [...c.payments].sort((a, b) => a.installment_number - b.installment_number);
     this.editInstallmentsCount = String(sorted.length || 12);
     this.editInstallments = sorted.map(p => ({
       amount: String(p.amount),
       percent: c.unit_price ? String(+(p.amount / c.unit_price * 100).toFixed(2)) : '',
+      date: p.due_date,
     }));
     this.editAmountsTouched = true;
     this.editMode = 'edit';
@@ -428,6 +465,8 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     this.editWhatsapp = '';
     this.editGender = '';
     this.editContractDate = this.toDateStr(new Date());
+    this.editEndTouched = false;
+    this.onEditStartDateChange();
   }
 
   /** تجديد سنة جديدة: نفس العميل، تاريخ البداية بعد سنة من التاريخ القديم */
@@ -437,23 +476,28 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     this.editMode = 'renew';
     const [y, m, d] = (this.contract()?.contract_date ?? this.toDateStr(new Date())).split('-').map(Number);
     this.editContractDate = this.toDateStr(new Date(y + 1, m - 1, d));
+    this.editEndTouched = false;
+    this.onEditStartDateChange();
   }
   cancelEdit() { this.editOpen = false; }
 
   /** يعيد توزيع قيمة الإيجار الحالية بالتساوي على عدد الدفعات المحدد (editInstallmentsCount) */
-  autoSplitEditInstallments() {
+  autoSplitEditInstallments(keepDates = false) {
     const price = Number(this.editUnitPrice) || 0;
-    const n = Math.max(1, Math.min(60, Math.round(Number(this.editInstallmentsCount)) || 12));
+    const n = Math.max(1, Math.min(this.editMaxInstallments, Math.round(Number(this.editInstallmentsCount)) || 12));
+    if (Number(this.editInstallmentsCount) > this.editMaxInstallments) this.editInstallmentsCount = String(n);
     const base = Math.round(price / n);
+    const prev = this.editInstallments;
+    const dates = spreadInstallmentDates(this.editContractDate, n, this.editEndDate);
     this.editInstallments = Array.from({ length: n }, (_, i) => {
       const amount = i < n - 1 ? base : price - base * (n - 1);
-      return { amount: price ? String(amount) : '', percent: String(+(100 / n).toFixed(2)) };
+      return { amount: price ? String(amount) : '', percent: String(+(100 / n).toFixed(2)), date: keepDates && prev.length === n ? prev[i].date : dates[i] };
     });
     this.editAmountsTouched = false;
   }
 
   onEditPriceChange() {
-    if (!this.editAmountsTouched) this.autoSplitEditInstallments();
+    this.autoSplitEditInstallments(true);
   }
   onEditInstallmentsCountChange() {
     this.autoSplitEditInstallments();
@@ -465,7 +509,6 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     if (!price || !pct) return;
     const amount = Math.round(price * pct / 100);
     this.editInstallments[i].amount = String(amount);
-    this.redistributeEditRemaining(i, amount, price);
   }
   onEditAmountEdit(i: number) {
     this.editAmountsTouched = true;
@@ -473,21 +516,29 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     const amount = Number(this.editInstallments[i].amount);
     if (!price || !amount) return;
     this.editInstallments[i].percent = String(+(amount / price * 100).toFixed(2));
-    this.redistributeEditRemaining(i, amount, price);
   }
-  /** بعد تعديل دفعة واحدة يدوياً، يوزّع الباقي بالتساوي تلقائياً على باقي الدفعات
-   *  بدل ما يضطر المستخدم يعدّلها هو بنفسه واحدة واحدة عشان الإجمالي يرجع يطابق قيمة الإيجار. */
-  private redistributeEditRemaining(editedIndex: number, editedAmount: number, price: number) {
-    const otherIndexes = this.editInstallments.map((_, idx) => idx).filter(idx => idx !== editedIndex);
-    if (!otherIndexes.length) return;
-    const remaining = price - editedAmount;
-    const base = Math.round(remaining / otherIndexes.length);
-    otherIndexes.forEach((idx, k) => {
-      const amount = k < otherIndexes.length - 1 ? base : remaining - base * (otherIndexes.length - 1);
-      this.editInstallments[idx].amount = String(amount);
-      this.editInstallments[idx].percent = price ? String(+(amount / price * 100).toFixed(2)) : '';
-    });
+  /** تغيير تاريخ البداية يعيد توزيع تواريخ كل الدفعات تلقائياً — وبعدها يمكن تعديل كل تاريخ على حدة */
+  onEditStartDateChange() {
+    if (!this.editEndTouched) this.editEndDate = addYearIso(this.editContractDate);
+    if (this.editInstallments.length > this.editMaxInstallments) { this.editInstallmentsCount = String(this.editMaxInstallments); this.autoSplitEditInstallments(); return; }
+    const dates = spreadInstallmentDates(this.editContractDate, this.editInstallments.length, this.editEndDate);
+    this.editInstallments.forEach((r, i) => r.date = dates[i]);
   }
+
+  /** أقصى عدد دفعات = عدد الأشهر بين تاريخ البداية والنهاية (دفعة على الأقل، وحد أقصى 60) */
+  get editMaxInstallments(): number {
+    if (!this.editContractDate || !this.editEndDate) return 60;
+    return Math.max(1, Math.min(60, monthsBetween(this.editContractDate, this.editEndDate)));
+  }
+
+  /** تغيير تاريخ النهاية يعيد توزيع التواريخ بين البداية والنهاية */
+  onEditEndDateChange() {
+    this.editEndTouched = true;
+    if (this.editInstallments.length > this.editMaxInstallments) { this.editInstallmentsCount = String(this.editMaxInstallments); this.autoSplitEditInstallments(); return; }
+    const dates = spreadInstallmentDates(this.editContractDate, this.editInstallments.length, this.editEndDate);
+    this.editInstallments.forEach((r, i) => r.date = dates[i]);
+  }
+
   removeEditInstallmentRow(i: number) {
     if (this.editInstallments.length <= 1) return;
     this.editAmountsTouched = true;
@@ -505,8 +556,10 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     return !!this.editName.trim()
       && !!this.editUnitPrice
       && !!this.editContractDate
+      && !!this.editEndDate && this.editEndDate > this.editContractDate
       && this.editInstallments.length > 0
       && this.editInstallments.every(r => Number(r.amount) > 0)
+      && this.editInstallments.every(r => !!r.date)
       && Math.abs(this.editInstallmentsRemaining) < 1;
   }
 
@@ -528,6 +581,7 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
       phone: this.editPhone.trim(),
       whatsapp: this.editWhatsapp.trim(),
       gender: this.editGender,
+        end_date: this.editEndDate,
     };
 
     // تقسيم السنة بالتساوي على عدد الدفعات الحالي (n) من تاريخ العقد (الجديد أو كما هو)
@@ -542,7 +596,7 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     const newRows: { installmentNumber: number; amount: number; dueDate: string }[] = [];
     for (let i = 0; i < n; i++) {
       const amount = Math.round(Number(this.editInstallments[i].amount));
-      const dueDate = this.toDateStr(new Date(start.getTime() + Math.round((i * spanMs) / n)));
+      const dueDate = this.editInstallments[i].date;
       if (i < existing.length) {
         updateOps.push(this.supa.updatePayment(existing[i].id, { amount, due_date: dueDate }));
       } else {
@@ -589,7 +643,7 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     const rows = this.editInstallments.map((r, i) => ({
       installmentNumber: i + 1,
       amount: Math.round(Number(r.amount)),
-      dueDate: this.toDateStr(new Date(start.getTime() + Math.round((i * spanMs) / n))),
+      dueDate: r.date,
     }));
 
     const ok = await this.supa.archiveAndRestart(target, reason, {
@@ -604,6 +658,7 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
         phone: this.editPhone.trim(),
         whatsapp: this.editWhatsapp.trim(),
         gender: this.editGender,
+        end_date: this.editEndDate,
       },
     }, rows);
 

@@ -7,11 +7,12 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { IconComponent } from '../../core/icon/icon.component';
+import { DateInputComponent } from '../../core/date-input/date-input.component';
 import { SupabaseService, ContractWithPayments } from '../../core/supabase.service';
 import { ToastService } from '../../core/toast.service';
 import { AuthService } from '../../core/auth.service';
 import { buildReminderMessage } from '../../core/reminder-message';
-import { daysDiffFromToday } from '../../core/date-utils';
+import { addYearIso, daysDiffFromToday, monthsBetween, spreadInstallmentDates } from '../../core/date-utils';
 
 interface XlsxRow {
   name: string;
@@ -19,6 +20,8 @@ interface XlsxRow {
   unit_price: string;
   first_payment: string;
   contract_date: string;
+  /** تاريخ نهاية العقد (ISO بعد المعالجة) — فاضي يعني بعد سنة من تاريخ البداية */
+  end_date: string;
   email: string;
   phone: string;
   whatsapp: string;
@@ -34,11 +37,13 @@ interface XlsxRow {
 
 /** أقصى عدد دفعات مدعوم في الاستيراد الجماعي (يطابق الحد الأقصى في فورم الإضافة اليدوية) */
 const MAX_XLSX_INSTALLMENTS = 12;
+/** أقصى عدد دفعات للعميل الواحد (يطابق فورم الإضافة اليدوية) — ويُقيَّد أيضاً بعدد الأشهر بين البداية والنهاية */
+const MAX_INSTALLMENTS = 60;
 
 @Component({
   selector: 'app-payments-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, TranslocoModule],
+  imports: [CommonModule, FormsModule, IconComponent, DateInputComponent, TranslocoModule],
   templateUrl: './payments-detail.component.html',
 })
 export class PaymentsDetailComponent implements OnInit, OnDestroy {
@@ -115,6 +120,8 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
   addUnitCode = '';
   addUnitPrice = '';
   addFirstPaymentDate = '';
+  addEndDate = '';
+  private addEndTouched = false;
   /** عدد الدفعات في السنة — الافتراضي 12 (شهرية)، قابل للتغيير (مثلاً 6 كل شهرين، أو 4 كل 3 شهور) */
   addInstallmentsCount = '12';
   addSaving = false;
@@ -124,7 +131,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
    *  السعر أو العدد طالما المستخدم لم يعدّلها يدوياً؛ بمجرد أي تعديل يدوي (مبلغ، إضافة، حذف)
    *  تتوقف عن إعادة التوزيع التلقائي حتى يطلبه صراحةً.
    *  كل صف فيه حقلا "نسبة %" و"مبلغ" متزامنين: تعديل أيّهما يحسب الآخر تلقائياً من قيمة الإيجار. */
-  addInstallments: { amount: string; percent: string }[] = [];
+  addInstallments: { amount: string; percent: string; date: string }[] = [];
   private addAmountsTouched = false;
 
   openAdd() {
@@ -137,6 +144,8 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     this.addUnitCode = '';
     this.addUnitPrice = '';
     this.addFirstPaymentDate = '';
+    this.addEndDate = '';
+    this.addEndTouched = false;
     this.addInstallmentsCount = '12';
     this.addInstallments = [];
     this.addAmountsTouched = false;
@@ -146,20 +155,23 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
   closeAdd() { this.addOpen = false; }
 
   /** يعيد توزيع قيمة الإيجار الحالية بالتساوي على عدد الدفعات المحدد (addInstallmentsCount) */
-  autoSplitInstallments() {
+  autoSplitInstallments(keepDates = false) {
     const price = Number(this.addUnitPrice) || 0;
-    const n = Math.max(1, Math.min(60, Math.round(Number(this.addInstallmentsCount)) || 12));
+    const n = Math.max(1, Math.min(this.addMaxInstallments, Math.round(Number(this.addInstallmentsCount)) || 12));
+    if (Number(this.addInstallmentsCount) > this.addMaxInstallments) this.addInstallmentsCount = String(n);
     const base = Math.round(price / n);
+    const prev = this.addInstallments;
+    const dates = spreadInstallmentDates(this.addFirstPaymentDate, n, this.addEndDate);
     this.addInstallments = Array.from({ length: n }, (_, i) => {
       const amount = i < n - 1 ? base : price - base * (n - 1);
-      return { amount: price ? String(amount) : '', percent: String(+(100 / n).toFixed(2)) };
+      return { amount: price ? String(amount) : '', percent: String(+(100 / n).toFixed(2)), date: keepDates && prev.length === n ? prev[i].date : dates[i] };
     });
     this.addAmountsTouched = false;
   }
 
-  /** يُستدعى عند تغيير قيمة الإيجار — يعيد التوزيع التلقائي فقط لو المستخدم لسه ما لمسش الدفعات يدوياً */
+  /** يُستدعى عند تغيير قيمة الإيجار — يعيد التوزيع التلقائي بالتساوي دايماً (لأن الإجمالي تغيّر) */
   onAddPriceChange() {
-    if (!this.addAmountsTouched) this.autoSplitInstallments();
+    this.autoSplitInstallments(true);
   }
 
   /** يُستدعى عند تغيير عدد الدفعات — يعيد التوزيع دايماً لأنه طلب صريح من المستخدم لعدد جديد */
@@ -182,6 +194,34 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     if (price && amount) this.addInstallments[i].percent = String(+(amount / price * 100).toFixed(2));
   }
 
+  /** تغيير تاريخ البداية يعيد توزيع تواريخ كل الدفعات تلقائياً — وبعدها يمكن تعديل كل تاريخ على حدة */
+  onAddStartDateChange() {
+    if (!this.addEndTouched) this.addEndDate = addYearIso(this.addFirstPaymentDate);
+    if (this.addInstallments.length > this.addMaxInstallments) { this.addInstallmentsCount = String(this.addMaxInstallments); this.autoSplitInstallments(); return; }
+    const dates = spreadInstallmentDates(this.addFirstPaymentDate, this.addInstallments.length, this.addEndDate);
+    this.addInstallments.forEach((r, i) => r.date = dates[i]);
+  }
+
+  /** أقصى عدد دفعات = عدد الأشهر بين تاريخ البداية والنهاية (دفعة على الأقل، وحد أقصى 60) */
+  get addMaxInstallments(): number {
+    if (!this.addFirstPaymentDate || !this.addEndDate) return 60;
+    return Math.max(1, Math.min(60, monthsBetween(this.addFirstPaymentDate, this.addEndDate)));
+  }
+
+  /** أقصى عدد دفعات = عدد الأشهر بين تاريخ البداية والنهاية (دفعة على الأقل، وحد أقصى 60) */
+  get editMaxInstallments(): number {
+    if (!this.editContractDate || !this.editEndDate) return 60;
+    return Math.max(1, Math.min(60, monthsBetween(this.editContractDate, this.editEndDate)));
+  }
+
+  /** تغيير تاريخ النهاية يعيد توزيع التواريخ بين البداية والنهاية */
+  onAddEndDateChange() {
+    this.addEndTouched = true;
+    if (this.addInstallments.length > this.addMaxInstallments) { this.addInstallmentsCount = String(this.addMaxInstallments); this.autoSplitInstallments(); return; }
+    const dates = spreadInstallmentDates(this.addFirstPaymentDate, this.addInstallments.length, this.addEndDate);
+    this.addInstallments.forEach((r, i) => r.date = dates[i]);
+  }
+
   removeInstallmentRow(i: number) {
     if (this.addInstallments.length <= 1) return;
     this.addAmountsTouched = true;
@@ -199,8 +239,10 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     return !!this.addName.trim()
       && !!this.addUnitPrice
       && !!this.addFirstPaymentDate
+      && !!this.addEndDate && this.addEndDate > this.addFirstPaymentDate
       && this.addInstallments.length > 0
       && this.addInstallments.every(r => Number(r.amount) > 0)
+      && this.addInstallments.every(r => !!r.date)
       && Math.abs(this.addInstallmentsRemaining) < 1;
   }
 
@@ -228,7 +270,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     const n = this.addInstallments.length;
     const installments = this.addInstallments.map((row, i) => ({
       amount: Math.round(Number(row.amount)),
-      dueDate: this.toDateStr(new Date(start.getTime() + Math.round((i * spanMs) / n))),
+      dueDate: row.date,
     }));
 
     const result = await this.supa.saveContract({
@@ -243,6 +285,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
         phone: this.addPhone.trim(),
         whatsapp: this.addWhatsapp.trim(),
         gender: this.addGender,
+        end_date: this.addEndDate,
       },
       installments,
     });
@@ -270,11 +313,13 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
   editUnitCode = '';
   editUnitPrice = '';
   editContractDate = '';
+  editEndDate = '';
+  private editEndTouched = false;
   editInstallmentsCount = '12';
   /** خطة الدفعات القابلة للتعديل — تبدأ من دفعات العميل الفعلية الحالية (لا من توزيع تلقائي)
    *  حتى لا تُفقَد أي تخصيص سابق، وتتوقف عن اعتبارها "لمسوسة يدوياً" (touched) إلا بعد
    *  تعديل فعلي أو تغيير عدد الدفعات صراحةً — بنفس منطق فورم الإضافة تماماً. */
-  editInstallments: { amount: string; percent: string }[] = [];
+  editInstallments: { amount: string; percent: string; date: string }[] = [];
   private editAmountsTouched = true;
   saving = false;
 
@@ -289,30 +334,36 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     this.editUnitCode = c.fields['unit_code'] ?? '';
     this.editUnitPrice = String(c.unit_price);
     this.editContractDate = c.contract_date ?? '';
+    this.editEndDate = c.fields['end_date'] || addYearIso(this.editContractDate);
+    this.editEndTouched = !!c.fields['end_date'];
     const sorted = [...c.payments].sort((a, b) => a.installment_number - b.installment_number);
     this.editInstallmentsCount = String(sorted.length || 12);
     this.editInstallments = sorted.map(p => ({
       amount: String(p.amount),
       percent: c.unit_price ? String(+(p.amount / c.unit_price * 100).toFixed(2)) : '',
+      date: p.due_date,
     }));
     this.editAmountsTouched = true;
   }
   cancelEdit() { this.editTarget = null; }
 
   /** يعيد توزيع قيمة الإيجار الحالية بالتساوي على عدد الدفعات المحدد (editInstallmentsCount) */
-  autoSplitEditInstallments() {
+  autoSplitEditInstallments(keepDates = false) {
     const price = Number(this.editUnitPrice) || 0;
-    const n = Math.max(1, Math.min(60, Math.round(Number(this.editInstallmentsCount)) || 12));
+    const n = Math.max(1, Math.min(this.editMaxInstallments, Math.round(Number(this.editInstallmentsCount)) || 12));
+    if (Number(this.editInstallmentsCount) > this.editMaxInstallments) this.editInstallmentsCount = String(n);
     const base = Math.round(price / n);
+    const prev = this.editInstallments;
+    const dates = spreadInstallmentDates(this.editContractDate, n, this.editEndDate);
     this.editInstallments = Array.from({ length: n }, (_, i) => {
       const amount = i < n - 1 ? base : price - base * (n - 1);
-      return { amount: price ? String(amount) : '', percent: String(+(100 / n).toFixed(2)) };
+      return { amount: price ? String(amount) : '', percent: String(+(100 / n).toFixed(2)), date: keepDates && prev.length === n ? prev[i].date : dates[i] };
     });
     this.editAmountsTouched = false;
   }
 
   onEditPriceChange() {
-    if (!this.editAmountsTouched) this.autoSplitEditInstallments();
+    this.autoSplitEditInstallments(true);
   }
   onEditInstallmentsCountChange() {
     this.autoSplitEditInstallments();
@@ -324,7 +375,6 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     if (!price || !pct) return;
     const amount = Math.round(price * pct / 100);
     this.editInstallments[i].amount = String(amount);
-    this.redistributeEditRemaining(i, amount, price);
   }
   onEditAmountEdit(i: number) {
     this.editAmountsTouched = true;
@@ -332,21 +382,23 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     const amount = Number(this.editInstallments[i].amount);
     if (!price || !amount) return;
     this.editInstallments[i].percent = String(+(amount / price * 100).toFixed(2));
-    this.redistributeEditRemaining(i, amount, price);
   }
-  /** بعد تعديل دفعة واحدة يدوياً، يوزّع الباقي بالتساوي تلقائياً على باقي الدفعات
-   *  بدل ما يضطر المستخدم يعدّلها هو بنفسه واحدة واحدة عشان الإجمالي يرجع يطابق قيمة الإيجار. */
-  private redistributeEditRemaining(editedIndex: number, editedAmount: number, price: number) {
-    const otherIndexes = this.editInstallments.map((_, idx) => idx).filter(idx => idx !== editedIndex);
-    if (!otherIndexes.length) return;
-    const remaining = price - editedAmount;
-    const base = Math.round(remaining / otherIndexes.length);
-    otherIndexes.forEach((idx, k) => {
-      const amount = k < otherIndexes.length - 1 ? base : remaining - base * (otherIndexes.length - 1);
-      this.editInstallments[idx].amount = String(amount);
-      this.editInstallments[idx].percent = price ? String(+(amount / price * 100).toFixed(2)) : '';
-    });
+  /** تغيير تاريخ البداية يعيد توزيع تواريخ كل الدفعات تلقائياً — وبعدها يمكن تعديل كل تاريخ على حدة */
+  onEditStartDateChange() {
+    if (!this.editEndTouched) this.editEndDate = addYearIso(this.editContractDate);
+    if (this.editInstallments.length > this.editMaxInstallments) { this.editInstallmentsCount = String(this.editMaxInstallments); this.autoSplitEditInstallments(); return; }
+    const dates = spreadInstallmentDates(this.editContractDate, this.editInstallments.length, this.editEndDate);
+    this.editInstallments.forEach((r, i) => r.date = dates[i]);
   }
+
+  /** تغيير تاريخ النهاية يعيد توزيع التواريخ بين البداية والنهاية */
+  onEditEndDateChange() {
+    this.editEndTouched = true;
+    if (this.editInstallments.length > this.editMaxInstallments) { this.editInstallmentsCount = String(this.editMaxInstallments); this.autoSplitEditInstallments(); return; }
+    const dates = spreadInstallmentDates(this.editContractDate, this.editInstallments.length, this.editEndDate);
+    this.editInstallments.forEach((r, i) => r.date = dates[i]);
+  }
+
   removeEditInstallmentRow(i: number) {
     if (this.editInstallments.length <= 1) return;
     this.editAmountsTouched = true;
@@ -364,8 +416,10 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     return !!this.editName.trim()
       && !!this.editUnitPrice
       && !!this.editContractDate
+      && !!this.editEndDate && this.editEndDate > this.editContractDate
       && this.editInstallments.length > 0
       && this.editInstallments.every(r => Number(r.amount) > 0)
+      && this.editInstallments.every(r => !!r.date)
       && Math.abs(this.editInstallmentsRemaining) < 1;
   }
 
@@ -382,6 +436,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
       phone: this.editPhone.trim(),
       whatsapp: this.editWhatsapp.trim(),
       gender: this.editGender,
+      end_date: this.editEndDate,
     };
 
     // تقسيم السنة بالتساوي على عدد الدفعات الحالي (n) من تاريخ العقد (الجديد أو كما هو)
@@ -396,7 +451,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     const newRows: { installmentNumber: number; amount: number; dueDate: string }[] = [];
     for (let i = 0; i < n; i++) {
       const amount = Math.round(Number(this.editInstallments[i].amount));
-      const dueDate = this.toDateStr(new Date(start.getTime() + Math.round((i * spanMs) / n)));
+      const dueDate = this.editInstallments[i].date;
       if (i < existing.length) {
         updateOps.push(this.supa.updatePayment(existing[i].id, { amount, due_date: dueDate }));
       } else {
@@ -444,8 +499,14 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
   getPaidCount(r: XlsxRow): number { return r.paid.filter(Boolean).length; }
   /** عدد الدفعات الفعلي لهذا الصف — من عمود عدد_الدفعات لو موجود، وإلا الافتراضي 12 */
   rowInstallmentsCount(r: XlsxRow): number {
-    return Math.max(1, Math.min(MAX_XLSX_INSTALLMENTS, Math.round(Number(r.installments_count)) || 12));
+    const requested = Math.max(1, Math.min(MAX_INSTALLMENTS, Math.round(Number(r.installments_count)) || 12));
+    const months = monthsBetween(this.rowStart(r), this.rowEnd(r));
+    return months ? Math.min(requested, Math.max(1, months)) : requested;
   }
+  private rowStart(r: XlsxRow): string { return r.contract_date || this.toDateStr(new Date()); }
+  private rowEnd(r: XlsxRow): string { return r.end_date || addYearIso(this.rowStart(r)); }
+  /** يظهر عمود "المدفوع" في المعاينة فقط لو الملف فيه أعمدة دفعة_1..دفعة_12 (ملفات النظام القديم) */
+  get xlsxHasPaid(): boolean { return this.xlsxRows.some(r => r.paidProvided); }
 
   isDragging = false;
 
@@ -469,12 +530,12 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
   }
 
   downloadTemplate() {
-    const paidHeaders = Array.from({ length: MAX_XLSX_INSTALLMENTS }, (_, i) => `دفعة_${i + 1}`);
-    const paidSample = Array.from({ length: MAX_XLSX_INSTALLMENTS }, (_, i) => i === 0 ? 'نعم' : 'لا');
-    const headers = ['name', 'unit_code', 'unit_price', 'first_payment', 'contract_date', 'email', 'phone', 'whatsapp', 'gender', 'installments_count', ...paidHeaders];
-    const sample  = ['محمد عبدالله', '1-A', '24000', '', '18/06/2026', 'email@example.com', '0501234567', '', 'ذكر', '12', ...paidSample];
+    const headers = ['الاسم', 'رقم الوحدة', 'قيمة الإيجار', 'تاريخ البداية', 'تاريخ النهاية', 'عدد الدفعات', 'الإيميل', 'الجوال', 'الواتساب', 'الجنس'];
+    const sample  = ['محمد عبدالله', '1-A', '24000', '10/09/2026', '10/09/2027', '12', 'email@example.com', '0501234567', '', 'ذكر'];
     const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
+    ws['!cols'] = headers.map(h => ({ wch: Math.max(14, h.length + 4) }));
     const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
     XLSX.utils.book_append_sheet(wb, ws, 'العملاء');
     XLSX.writeFile(wb, 'قالب_العملاء.xlsx');
   }
@@ -578,7 +639,11 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
         contract_date: [
           'contract_date', 'contractdate', 'date', 'signing_date', 'start_date', 'agreement_date',
           'تاريخ_العقد', 'تاريخ', 'التاريخ', 'تاريخ_التعاقد', 'تاريخ_الاتفاقية',
-          'تاريخ_التوقيع', 'تاريخ_البدء',
+          'تاريخ_التوقيع', 'تاريخ_البدء', 'تاريخ_البداية', 'بداية_العقد',
+        ],
+        end_date: [
+          'end_date', 'enddate', 'end', 'contract_end', 'expiry_date', 'expiry',
+          'تاريخ_النهاية', 'تاريخ_الانتهاء', 'تاريخ_انتهاء_العقد', 'نهاية_العقد', 'تاريخ_نهاية_العقد',
         ],
         email: [
           'email', 'mail', 'e_mail', 'e-mail', 'client_email', 'customer_email',
@@ -663,6 +728,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
             unit_price:         getStr(r, 'unit_price'),
             first_payment:      getStr(r, 'first_payment'),
             contract_date:      getStr(r, 'contract_date').replace(/^[_\-]+$/, ''),
+            end_date:           getStr(r, 'end_date').replace(/^[_\-]+$/, ''),
             email:              getStr(r, 'email'),
             phone:              getStr(r, 'phone').replace(/^pdi\s*/i, '').trim(),
             whatsapp:           getStr(r, 'whatsapp').replace(/^pdi\s*/i, '').trim(),
@@ -680,6 +746,12 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
             const parsedDate = this.parseContractDate(row.contract_date);
             if (!parsedDate) row.error = this.transloco.translate('detail.invalidDate', { date: row.contract_date });
             else row.contract_date = parsedDate;
+          }
+          if (!row.error && row.end_date) {
+            const parsedEnd = this.parseContractDate(row.end_date);
+            if (!parsedEnd) row.error = this.transloco.translate('detail.invalidDate', { date: row.end_date });
+            else if (parsedEnd <= this.rowStart(row)) row.error = this.transloco.translate('detail.invalidEndDate');
+            else row.end_date = parsedEnd;
           }
           return row;
         });
@@ -713,6 +785,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
           phone:     row.phone,
           whatsapp:  row.whatsapp,
           gender:    row.gender,
+          end_date:  row.end_date,
         };
 
         // ── تحقّق من التكرار الكامل: نفس الاسم + نفس رقم الوحدة معاً ────────
@@ -758,17 +831,14 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
 
         const price = row.unit_price ? Number(row.unit_price.replace(/,/g, '')) : 0;
         const dateStr = row.contract_date || this.toDateStr(new Date());
-        const [y, m, d] = dateStr.split('-').map(Number);
-        const start = new Date(y, m - 1, d);
-        const end = new Date(y + 1, m - 1, d);
-        const spanMs = end.getTime() - start.getTime();
         const n = this.rowInstallmentsCount(row);
+        const endDate = this.rowEnd(row);
+        const dueDates = spreadInstallmentDates(dateStr, n, endDate);
 
         // تقسيم قيمة الإيجار بالتساوي على n دفعة خلال السنة؛ عمود "الدفعة الأولى" اختياري
         // ويُستخدم فقط لو حبيت تحدد دفعة أولى مختلفة (مثل تأمين أو مقدم)، والباقي يُوزَّع بالتساوي
         const fpOverride = row.first_payment ? Number(row.first_payment.replace(/,/g, '')) : null;
         const installments = Array.from({ length: n }, (_, idx) => {
-          const dt = new Date(start.getTime() + Math.round((idx * spanMs) / n));
           let amount: number;
           if (fpOverride !== null && n > 1) {
             const remaining = price - fpOverride;
@@ -780,8 +850,8 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
           }
           return {
             amount,
-            dueDate: this.toDateStr(dt),
-            paid: row.paidProvided ? row.paid[idx] : idx === 0,
+            dueDate: dueDates[idx],
+            paid: row.paidProvided ? !!row.paid[idx] : idx === 0,
           };
         });
 
@@ -791,7 +861,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
           unitPrice: price,
           firstPayment: installments[0].amount,
           contractDate: dateStr,
-          fields: newFields,
+          fields: { ...newFields, end_date: endDate },
           installments,
         });
         if (!('error' in result)) {

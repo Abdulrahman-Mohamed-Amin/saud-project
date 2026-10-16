@@ -95,23 +95,12 @@
             </span>
           }
 
-          <!-- Card header -->
-          <div class="flex items-start justify-between gap-2 p-4 border-b border-line">
-            <div class="flex items-center gap-3 flex-1 min-w-0">
-              <!-- Unit code badge -->
-              <div class="flex flex-col items-center justify-center h-12 w-12 rounded-xl bg-brand text-white shrink-0">
-                <span class="text-[10px] font-medium opacity-80 leading-none">{{ 'detail.unit' | transloco }}</span>
-                <span class="text-sm font-bold tnum leading-tight">{{ c.fields['unit_code'] || '—' }}</span>
-              </div>
-              <div class="min-w-0">
-                <p class="font-bold text-ink text-sm leading-tight truncate">{{ c.client_name }}</p>
-                <p class="text-base font-bold tnum text-brand mt-0.5">
-                  {{ fmt(c.unit_price) }} <span class="text-xs font-semibold text-ink-muted">{{ 'common.sar' | transloco }}</span>
-                </p>
-              </div>
-            </div>
-
-            <!-- Edit / delete -->
+          <!-- Row 1: unit code + edit / delete -->
+          <div class="flex items-center justify-between gap-2 px-4 pt-4" [class.ps-9]="cardDot(c)">
+            <span class="inline-flex items-center gap-1.5 rounded-lg bg-brand px-2.5 py-1.5 text-white">
+              <span class="text-[10px] font-medium opacity-80">{{ 'detail.unit' | transloco }}</span>
+              <span class="text-sm font-bold tnum leading-none">{{ c.fields['unit_code'] || '—' }}</span>
+            </span>
             @if (auth.canManagePayments) {
               <div class="flex items-center gap-1.5 shrink-0">
                 <button type="button" (click)="openEdit(c); $event.stopPropagation()"
@@ -130,8 +119,20 @@
             }
           </div>
 
-          <!-- Collection progress -->
-          <div class="p-4">
+          <!-- Row 2: client name -->
+          <div class="px-4 pt-3">
+            <p class="font-bold text-ink text-sm leading-tight truncate">{{ c.client_name }}</p>
+          </div>
+
+          <!-- Row 3: amount -->
+          <div class="px-4 pt-1">
+            <p class="text-base font-bold tnum text-brand">
+              {{ fmt(c.unit_price) }} <span class="text-xs font-semibold text-ink-muted">{{ 'common.sar' | transloco }}</span>
+            </p>
+          </div>
+
+          <!-- Row 4: collection progress -->
+          <div class="p-4 pt-3">
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs text-ink-muted">{{ 'detail.collection' | transloco }}</span>
               <span class="text-xs font-bold text-ink tnum">{{ paidCount(c) }} / {{ c.payments.length }}</span>
@@ -179,7 +180,7 @@
 @if (editTarget) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="cancelEdit()">
     <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
-    <div class="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-pop p-6 anim-pop max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+    <div class="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-pop p-6 anim-pop max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
       <h3 class="font-bold text-ink text-lg mb-5">{{ 'detail.editClientTitle' | transloco }}</h3>
 
       <div class="space-y-4">
@@ -232,14 +233,20 @@
             class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
         </div>
         <div>
-          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.firstInstallmentDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
-          <input type="date" [(ngModel)]="editContractDate"
-            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.startDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <app-date-input [value]="editContractDate" (valueChange)="editContractDate = $event; $event && onEditStartDateChange()"
+            inputClass="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.endDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <app-date-input [value]="editEndDate" (valueChange)="editEndDate = $event; $event && onEditEndDateChange()"
+            inputClass="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.installmentsCount' | transloco }}</label>
-          <input type="number" min="1" max="60" [(ngModel)]="editInstallmentsCount" (ngModelChange)="onEditInstallmentsCountChange()" dir="ltr"
+          <input type="number" min="1" [max]="editMaxInstallments" [(ngModel)]="editInstallmentsCount" (ngModelChange)="onEditInstallmentsCountChange()" dir="ltr"
             class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+          <p class="text-[11px] text-ink-faint mt-1">{{ 'detail.maxInstallmentsHint' | transloco: { max: editMaxInstallments } }}</p>
         </div>
 
         <!-- خطة الدفعات — موزّعة تلقائياً بالتساوي على عدد الدفعات المحدد خلال السنة، وقابلة للتعديل الكامل -->
@@ -255,18 +262,20 @@
 
           <div class="space-y-1.5">
             @for (row of editInstallments; track $index) {
-              <div class="flex items-center gap-1.5">
-                <span class="w-11 shrink-0 text-[11px] text-ink-faint">{{ $index + 1 }}.</span>
+              <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                <span class="w-9 shrink-0 text-xs text-ink-faint">{{ $index + 1 }}.</span>
                 <input type="number" [(ngModel)]="row.percent" (ngModelChange)="onEditPercentEdit($index)"
                   placeholder="%" dir="ltr" [title]="'detail.percent' | transloco"
-                  class="w-14 shrink-0 rounded-lg border border-line bg-canvas px-1.5 py-1.5 text-sm text-ink text-center focus:outline-none focus:border-brand focus:bg-white transition" />
+                  class="h-9 w-20 shrink-0 rounded-lg border border-line bg-canvas px-2 text-sm text-ink text-center focus:outline-none focus:border-brand focus:bg-white transition" />
                 <span class="shrink-0 text-xs text-ink-faint">%</span>
                 <input type="number" [(ngModel)]="row.amount" (ngModelChange)="onEditAmountEdit($index)"
                   [placeholder]="'detail.amount' | transloco" dir="ltr"
-                  class="flex-1 min-w-0 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+                  class="h-9 flex-1 min-w-[6rem] rounded-lg border border-line bg-canvas px-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+                <app-date-input class="block min-w-[8.5rem] flex-1 sm:flex-none sm:w-40 sm:shrink-0" [(value)]="row.date"
+                  inputClass="h-9 w-full rounded-lg border border-line bg-canvas px-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
                 <button type="button" (click)="removeEditInstallmentRow($index)" [disabled]="editInstallments.length <= 1"
                   [title]="'detail.removeInstallment' | transloco"
-                  class="shrink-0 grid h-7 w-7 place-items-center rounded-lg text-ink-faint hover:bg-[#FEF2F2] hover:text-[#DC2626] transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  class="shrink-0 grid h-9 w-9 place-items-center rounded-lg text-ink-faint hover:bg-[#FEF2F2] hover:text-[#DC2626] transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
                   <app-icon name="close" cls="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -308,12 +317,7 @@
     <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
     <div class="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-pop p-6 anim-pop" (click)="$event.stopPropagation()">
       <h3 class="font-bold text-ink text-lg mb-1">{{ 'detail.importTitle' | transloco }}</h3>
-      <p class="text-xs text-ink-muted mb-5">
-        {{ 'detail.importRequiredCol' | transloco }} <span class="font-mono bg-canvas px-1 rounded">name</span> — {{ 'detail.importRestOptional' | transloco }}
-        {{ 'detail.importInstallmentsCountCol' | transloco }} <span class="font-mono bg-canvas px-1 rounded">installments_count</span> {{ 'detail.importInstallmentsCountColHint' | transloco }}
-        {{ 'detail.importPaidCols' | transloco }} <span class="font-mono bg-canvas px-1 rounded">دفعة_1</span> {{ 'detail.importTo' | transloco }} <span class="font-mono bg-canvas px-1 rounded">دفعة_12</span> {{ 'detail.importYesNo' | transloco }}
-        {{ 'detail.importTemplateHint' | transloco }}
-      </p>
+      <p class="text-xs text-ink-muted mb-5">{{ 'detail.importHelp' | transloco }}</p>
 
       <input #xlsxInput type="file" accept=".xlsx,.xls" class="hidden" (change)="handleXlsxFile($event)">
 
@@ -355,11 +359,13 @@
                 <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colName' | transloco }}</th>
                 <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colUnit' | transloco }}</th>
                 <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colPrice' | transloco }}</th>
-                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colFirstPayment' | transloco }}</th>
-                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colContractDate' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.startDate' | transloco }}</th>
+                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.endDate' | transloco }}</th>
                 <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colPhone' | transloco }}</th>
                 <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.installmentsCount' | transloco }}</th>
-                <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colPaidInstallments' | transloco }}</th>
+                @if (xlsxHasPaid) {
+                  <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted">{{ 'detail.colPaidInstallments' | transloco }}</th>
+                }
                 <th class="text-start px-3 py-2 text-xs font-semibold text-ink-muted"></th>
               </tr>
             </thead>
@@ -369,13 +375,15 @@
                   <td class="px-3 py-2 font-medium text-ink">{{ r.name || '—' }}</td>
                   <td class="px-3 py-2 text-ink-muted">{{ r.unit_code || '—' }}</td>
                   <td class="px-3 py-2 tnum text-ink-muted">{{ r.unit_price || '—' }}</td>
-                  <td class="px-3 py-2 tnum text-ink-muted">{{ r.first_payment || '—' }}</td>
                   <td class="px-3 py-2 tnum text-ink-muted">{{ r.contract_date || '—' }}</td>
+                  <td class="px-3 py-2 tnum text-ink-muted">{{ r.end_date || '—' }}</td>
                   <td class="px-3 py-2 text-ink-muted text-[11px]">{{ r.phone || '—' }}</td>
                   <td class="px-3 py-2 tnum text-ink-muted">{{ rowInstallmentsCount(r) }}</td>
-                  <td class="px-3 py-2 tnum text-ink-muted">
-                    {{ r.paidProvided ? (getPaidCount(r) + ' / ' + rowInstallmentsCount(r)) : '—' }}
-                  </td>
+                  @if (xlsxHasPaid) {
+                    <td class="px-3 py-2 tnum text-ink-muted">
+                      {{ r.paidProvided ? (getPaidCount(r) + ' / ' + rowInstallmentsCount(r)) : '—' }}
+                    </td>
+                  }
                   <td class="px-3 py-2">
                     @if (r.error) {
                       <span class="text-[11px] text-[#DC2626] font-medium">{{ r.error }}</span>
@@ -492,7 +500,7 @@
 @if (addOpen) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="closeAdd()">
     <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
-    <div class="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-pop p-6 anim-pop max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+    <div class="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-pop p-6 anim-pop max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
       <h3 class="font-bold text-ink text-lg mb-5">{{ 'detail.addClientTitle' | transloco }}</h3>
 
       <div class="space-y-4">
@@ -545,14 +553,20 @@
             class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
         </div>
         <div>
-          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.firstInstallmentDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
-          <input type="date" [(ngModel)]="addFirstPaymentDate" dir="ltr"
-            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.startDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <app-date-input [value]="addFirstPaymentDate" (valueChange)="addFirstPaymentDate = $event; $event && onAddStartDateChange()"
+            inputClass="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.endDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <app-date-input [value]="addEndDate" (valueChange)="addEndDate = $event; $event && onAddEndDateChange()"
+            inputClass="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.installmentsCount' | transloco }}</label>
-          <input type="number" min="1" max="60" [(ngModel)]="addInstallmentsCount" (ngModelChange)="onInstallmentsCountChange()" dir="ltr"
+          <input type="number" min="1" [max]="addMaxInstallments" [(ngModel)]="addInstallmentsCount" (ngModelChange)="onInstallmentsCountChange()" dir="ltr"
             class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+          <p class="text-[11px] text-ink-faint mt-1">{{ 'detail.maxInstallmentsHint' | transloco: { max: addMaxInstallments } }}</p>
         </div>
 
         <!-- خطة الدفعات — موزّعة تلقائياً بالتساوي على عدد الدفعات المحدد خلال السنة، وقابلة للتعديل الكامل -->
@@ -568,18 +582,20 @@
 
           <div class="space-y-1.5">
             @for (row of addInstallments; track $index) {
-              <div class="flex items-center gap-1.5">
-                <span class="w-11 shrink-0 text-[11px] text-ink-faint">{{ $index + 1 }}.</span>
+              <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                <span class="w-9 shrink-0 text-xs text-ink-faint">{{ $index + 1 }}.</span>
                 <input type="number" [(ngModel)]="row.percent" (ngModelChange)="onAddPercentEdit($index)"
                   placeholder="%" dir="ltr" [title]="'detail.percent' | transloco"
-                  class="w-14 shrink-0 rounded-lg border border-line bg-canvas px-1.5 py-1.5 text-sm text-ink text-center focus:outline-none focus:border-brand focus:bg-white transition" />
+                  class="h-9 w-20 shrink-0 rounded-lg border border-line bg-canvas px-2 text-sm text-ink text-center focus:outline-none focus:border-brand focus:bg-white transition" />
                 <span class="shrink-0 text-xs text-ink-faint">%</span>
                 <input type="number" [(ngModel)]="row.amount" (ngModelChange)="onAddAmountEdit($index)"
                   [placeholder]="'detail.amount' | transloco" dir="ltr"
-                  class="flex-1 min-w-0 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+                  class="h-9 flex-1 min-w-[6rem] rounded-lg border border-line bg-canvas px-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+                <app-date-input class="block min-w-[8.5rem] flex-1 sm:flex-none sm:w-40 sm:shrink-0" [(value)]="row.date"
+                  inputClass="h-9 w-full rounded-lg border border-line bg-canvas px-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
                 <button type="button" (click)="removeInstallmentRow($index)" [disabled]="addInstallments.length <= 1"
                   [title]="'detail.removeInstallment' | transloco"
-                  class="shrink-0 grid h-7 w-7 place-items-center rounded-lg text-ink-faint hover:bg-[#FEF2F2] hover:text-[#DC2626] transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  class="shrink-0 grid h-9 w-9 place-items-center rounded-lg text-ink-faint hover:bg-[#FEF2F2] hover:text-[#DC2626] transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
                   <app-icon name="close" cls="h-3.5 w-3.5" />
                 </button>
               </div>

@@ -41,10 +41,26 @@
             {{ c.fields['unit_code'] || '—' }}
           </span>
         </div>
-        <p class="flex items-center gap-1.5 text-sm font-semibold text-ink" dir="ltr">
-          <app-icon name="mail" cls="h-3.5 w-3.5 text-ink-faint shrink-0" />
-          {{ clientEmail(c) || '—' }}
+        <p class="flex items-center justify-center gap-1.5 w-full max-w-md rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-semibold text-ink" dir="ltr">
+          <app-icon name="mail" cls="h-4 w-4 text-brand-700 shrink-0" />
+          <span class="min-w-0 truncate">{{ clientEmail(c) || '—' }}</span>
         </p>
+        @if (c.contract_date) {
+          <div class="grid grid-cols-3 gap-2 w-full max-w-md pt-2">
+            <div class="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-center">
+              <p class="text-[11px] font-semibold text-brand-700">{{ 'detail.startDate' | transloco }}</p>
+              <p class="mt-0.5 text-sm font-bold text-ink tnum">{{ formatDate(c.contract_date) }}</p>
+            </div>
+            <div class="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-center">
+              <p class="text-[11px] font-semibold text-brand-700">{{ 'detail.endDate' | transloco }}</p>
+              <p class="mt-0.5 text-sm font-bold text-ink tnum">{{ formatDate(endDateOf(c)) }}</p>
+            </div>
+            <div class="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-center">
+              <p class="text-[11px] font-semibold text-brand-700">{{ 'detail.rentDuration' | transloco }}</p>
+              <p class="mt-0.5 text-sm font-bold text-ink">{{ rentMonths(c) ? ('detail.monthsCount' | transloco: { count: rentMonths(c) }) : '—' }}</p>
+            </div>
+          </div>
+        }
         <p class="text-2xl font-bold tnum text-brand pt-1">
           {{ fmt(c.unit_price) }} <span class="text-sm font-semibold text-ink-muted">{{ 'common.sar' | transloco }}</span>
         </p>
@@ -171,15 +187,6 @@
               } @else {
                 <p class="text-sm font-bold tnum text-ink">{{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
               }
-              @if (canRemind(p)) {
-                <button (click)="sendEarlyReminder(p, c)" [disabled]="!!remindingId || p.reminder_count >= 2"
-                  class="shrink-0 rounded-lg border border-[#FCA5A5] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#DC2626] hover:bg-[#FEE2E2] transition cursor-pointer disabled:opacity-50">
-                  @if (remindingId === p.id) { <span>...</span> }
-                  @else if (p.reminder_count >= 2) { <span>{{ 'detail.reminderMax' | transloco: { count: p.reminder_count } }}</span> }
-                  @else if (p.reminder_count > 0) { <span>{{ 'detail.reminderBtnCount' | transloco: { count: p.reminder_count } }}</span> }
-                  @else { <span>{{ 'detail.reminderBtn' | transloco }}</span> }
-                </button>
-              }
               <button (click)="toggle(p, c)"
                 class="shrink-0 rounded-lg bg-[#DC2626] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#b91c1c] transition cursor-pointer">
                 {{ 'detail.registerPayment' | transloco }}
@@ -212,15 +219,6 @@
                 </div>
               } @else {
                 <p class="text-sm font-bold tnum text-ink">{{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
-              }
-              @if (canRemind(p)) {
-                <button (click)="sendEarlyReminder(p, c)" [disabled]="!!remindingId || p.reminder_count >= 2"
-                  class="shrink-0 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition cursor-pointer disabled:opacity-50">
-                  @if (remindingId === p.id) { <span>...</span> }
-                  @else if (p.reminder_count >= 2) { <span>{{ 'detail.reminderMax' | transloco: { count: p.reminder_count } }}</span> }
-                  @else if (p.reminder_count > 0) { <span>{{ 'detail.reminderBtnCount' | transloco: { count: p.reminder_count } }}</span> }
-                  @else { <span>{{ 'detail.reminderBtn' | transloco }}</span> }
-                </button>
               }
               <button (click)="toggle(p, c)"
                 class="shrink-0 rounded-lg bg-brand px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 transition cursor-pointer">
@@ -255,15 +253,6 @@
               } @else {
                 <p class="text-sm font-bold tnum text-ink">{{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
               }
-              @if (canRemind(p)) {
-                <button (click)="sendEarlyReminder(p, c)" [disabled]="!!remindingId || p.reminder_count >= 2"
-                  class="shrink-0 rounded-lg border border-[#FDE68A] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#D97706] hover:bg-[#FEF3C7] transition cursor-pointer disabled:opacity-50">
-                  @if (remindingId === p.id) { <span>...</span> }
-                  @else if (p.reminder_count >= 2) { <span>{{ 'detail.reminderMax' | transloco: { count: p.reminder_count } }}</span> }
-                  @else if (p.reminder_count > 0) { <span>{{ 'detail.reminderBtnCount' | transloco: { count: p.reminder_count } }}</span> }
-                  @else { <span>{{ 'detail.reminderBtn' | transloco }}</span> }
-                </button>
-              }
               <button (click)="toggle(p, c)"
                 class="shrink-0 rounded-lg bg-[#D97706] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#B45309] transition cursor-pointer">
                 {{ 'detail.registerPayment' | transloco }}
@@ -292,15 +281,6 @@
               } @else {
                 <p class="text-sm font-bold tnum text-ink">{{ fmt(p.amount) }} <span class="text-[10px] font-medium text-ink-muted">{{ 'common.sar' | transloco }}</span></p>
               }
-              @if (canRemind(p)) {
-                <button (click)="sendEarlyReminder(p, c)" [disabled]="!!remindingId || p.reminder_count >= 2"
-                  class="shrink-0 rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-semibold text-ink-muted hover:border-brand hover:text-brand transition cursor-pointer disabled:opacity-50">
-                  @if (remindingId === p.id) { <span>...</span> }
-                  @else if (p.reminder_count >= 2) { <span>{{ 'detail.reminderMax' | transloco: { count: p.reminder_count } }}</span> }
-                  @else if (p.reminder_count > 0) { <span>{{ 'detail.reminderBtnCount' | transloco: { count: p.reminder_count } }}</span> }
-                  @else { <span>{{ 'detail.reminderBtn' | transloco }}</span> }
-                </button>
-              }
               <button (click)="toggle(p, c)"
                 class="shrink-0 rounded-lg border border-brand text-brand px-2.5 py-1.5 text-xs font-semibold hover:bg-brand hover:text-white transition cursor-pointer">
                 {{ 'detail.registerPayment' | transloco }}
@@ -309,7 +289,7 @@
           </div>
         }
 
-        @if (auth.canManagePayments && !p.paid) {
+        @if (auth.canManagePayments) {
           <button type="button" (click)="openPaymentNote(p)" [title]="'detail.paymentNote' | transloco"
             class="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand text-white hover:bg-brand-600 transition cursor-pointer">
             <app-icon name="doc" cls="h-5 w-5" />
@@ -386,28 +366,78 @@
       <p class="text-center text-sm text-ink-muted mt-1">{{ contract()?.client_name }} · {{ installmentLabel(notePaymentTarget) }}</p>
 
       <div class="mt-4 space-y-4">
-        <div>
-          <span class="text-xs font-semibold text-ink-muted">{{ 'detail.amountPaidSoFar' | transloco }} ({{ 'common.sar' | transloco }})</span>
-          <div class="mt-1.5 flex gap-2">
-            <input type="number" [(ngModel)]="notePaymentAmount" dir="ltr" [disabled]="savingNote"
-              class="min-w-0 flex-1 rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition disabled:opacity-50" />
-            <button type="button" (click)="savePaymentAmount()" [disabled]="savingNote"
-              class="shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-600 transition disabled:opacity-50 cursor-pointer">
-              {{ 'common.save' | transloco }}
-            </button>
+        @if (!notePaymentTarget.paid) {
+          <div>
+            <span class="text-xs font-semibold text-ink-muted">{{ 'detail.amountPaidSoFar' | transloco }} ({{ 'common.sar' | transloco }})</span>
+            <div class="mt-1.5 flex gap-2">
+              <input type="number" [(ngModel)]="notePaymentAmount" dir="ltr" [disabled]="savingNote"
+                class="min-w-0 flex-1 rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition disabled:opacity-50" />
+              <button type="button" (click)="savePaymentAmount()" [disabled]="savingNote"
+                class="shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-600 transition disabled:opacity-50 cursor-pointer">
+                {{ 'common.save' | transloco }}
+              </button>
+            </div>
+            <p class="text-[11px] text-ink-faint mt-1">
+              {{ 'detail.remaining' | transloco }}: {{ fmt(notePaymentRemaining) }} {{ 'common.sar' | transloco }}
+            </p>
           </div>
-          <p class="text-[11px] text-ink-faint mt-1">
-            {{ 'detail.remaining' | transloco }}: {{ fmt(notePaymentRemaining) }} {{ 'common.sar' | transloco }}
-          </p>
-        </div>
+        }
 
         <div>
           <span class="text-xs font-semibold text-ink-muted">{{ 'detail.notes' | transloco }}</span>
           <div class="mt-1.5 space-y-2 max-h-52 overflow-y-auto">
             @for (n of notePaymentTarget.notes; track $index) {
               <div class="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2">
-                <p class="text-[10px] font-semibold text-brand-700 tnum">{{ formatDate(n.date) }}</p>
-                <p class="text-sm text-ink whitespace-pre-wrap break-words mt-0.5">{{ n.text }}</p>
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-[10px] font-semibold text-brand-700 tnum">{{ formatDate(n.date) }}</p>
+                  @if (editingNoteIndex !== $index && deletingNoteIndex !== $index) {
+                    <div class="flex items-center gap-1">
+                      <button type="button" (click)="startEditNote($index)" [disabled]="savingNote" [title]="'common.edit' | transloco"
+                        class="grid h-6 w-6 place-items-center rounded-md text-brand-700 hover:bg-white transition cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button type="button" (click)="askDeleteNote($index)" [disabled]="savingNote" [title]="'common.delete' | transloco"
+                        class="grid h-6 w-6 place-items-center rounded-md text-[#DC2626] hover:bg-white transition cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  }
+                </div>
+
+                @if (editingNoteIndex === $index) {
+                  <textarea [(ngModel)]="editingNoteText" rows="2" [disabled]="savingNote"
+                    class="mt-1 w-full rounded-lg border border-line bg-white px-2.5 py-2 text-sm text-ink focus:outline-none focus:border-brand transition disabled:opacity-50 resize-none"></textarea>
+                  <div class="mt-1.5 flex gap-2">
+                    <button type="button" (click)="saveEditedNote()" [disabled]="savingNote || !editingNoteText.trim()"
+                      class="flex-1 rounded-lg bg-brand py-1.5 text-xs font-semibold text-white hover:bg-brand-600 transition disabled:opacity-50 cursor-pointer">
+                      {{ 'common.save' | transloco }}
+                    </button>
+                    <button type="button" (click)="cancelEditNote()" [disabled]="savingNote"
+                      class="flex-1 rounded-lg border border-line bg-white py-1.5 text-xs font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+                      {{ 'common.cancel' | transloco }}
+                    </button>
+                  </div>
+                } @else {
+                  <p class="text-sm text-ink whitespace-pre-wrap break-words mt-0.5">{{ n.text }}</p>
+                }
+
+                @if (deletingNoteIndex === $index) {
+                  <div class="mt-1.5 flex items-center gap-2">
+                    <span class="flex-1 text-xs font-semibold text-[#DC2626]">{{ 'detail.deleteNoteConfirm' | transloco }}</span>
+                    <button type="button" (click)="confirmDeleteNote()" [disabled]="savingNote"
+                      class="rounded-lg bg-[#DC2626] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#b91c1c] transition disabled:opacity-50 cursor-pointer">
+                      {{ 'common.delete' | transloco }}
+                    </button>
+                    <button type="button" (click)="cancelEditNote()" [disabled]="savingNote"
+                      class="rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+                      {{ 'common.cancel' | transloco }}
+                    </button>
+                  </div>
+                }
               </div>
             } @empty {
               <p class="text-xs text-ink-faint">{{ 'detail.noNotes' | transloco }}</p>
@@ -438,7 +468,7 @@
 @if (editOpen) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade" (click)="cancelEdit()">
     <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm"></div>
-    <div class="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-pop p-6 anim-pop max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+    <div class="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-pop p-6 anim-pop max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
       <h3 class="font-bold text-ink text-lg" [class.mb-5]="editMode === 'edit'" [class.mb-1]="editMode !== 'edit'">
         {{ (editMode === 'replace' ? 'detail.replaceClientTitle' : editMode === 'renew' ? 'detail.renewYearTitle' : 'detail.editClientTitle') | transloco }}
       </h3>
@@ -496,14 +526,20 @@
             class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
         </div>
         <div>
-          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.firstInstallmentDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
-          <input type="date" [(ngModel)]="editContractDate"
-            class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.startDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <app-date-input [value]="editContractDate" (valueChange)="editContractDate = $event; $event && onEditStartDateChange()"
+            inputClass="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.endDate' | transloco }} <span class="text-[#DC2626]">*</span></label>
+          <app-date-input [value]="editEndDate" (valueChange)="editEndDate = $event; $event && onEditEndDateChange()"
+            inputClass="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-ink-muted mb-1.5">{{ 'detail.installmentsCount' | transloco }}</label>
-          <input type="number" min="1" max="60" [(ngModel)]="editInstallmentsCount" (ngModelChange)="onEditInstallmentsCountChange()" dir="ltr"
+          <input type="number" min="1" [max]="editMaxInstallments" [(ngModel)]="editInstallmentsCount" (ngModelChange)="onEditInstallmentsCountChange()" dir="ltr"
             class="w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+          <p class="text-[11px] text-ink-faint mt-1">{{ 'detail.maxInstallmentsHint' | transloco: { max: editMaxInstallments } }}</p>
         </div>
 
         <!-- خطة الدفعات — موزّعة تلقائياً بالتساوي على عدد الدفعات المحدد خلال السنة، وقابلة للتعديل الكامل -->
@@ -519,18 +555,20 @@
 
           <div class="space-y-1.5">
             @for (row of editInstallments; track $index) {
-              <div class="flex items-center gap-1.5">
-                <span class="w-11 shrink-0 text-[11px] text-ink-faint">{{ $index + 1 }}.</span>
+              <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                <span class="w-9 shrink-0 text-xs text-ink-faint">{{ $index + 1 }}.</span>
                 <input type="number" [(ngModel)]="row.percent" (ngModelChange)="onEditPercentEdit($index)"
                   placeholder="%" dir="ltr" [title]="'detail.percent' | transloco"
-                  class="w-14 shrink-0 rounded-lg border border-line bg-canvas px-1.5 py-1.5 text-sm text-ink text-center focus:outline-none focus:border-brand focus:bg-white transition" />
+                  class="h-9 w-20 shrink-0 rounded-lg border border-line bg-canvas px-2 text-sm text-ink text-center focus:outline-none focus:border-brand focus:bg-white transition" />
                 <span class="shrink-0 text-xs text-ink-faint">%</span>
                 <input type="number" [(ngModel)]="row.amount" (ngModelChange)="onEditAmountEdit($index)"
                   [placeholder]="'detail.amount' | transloco" dir="ltr"
-                  class="flex-1 min-w-0 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+                  class="h-9 flex-1 min-w-[6rem] rounded-lg border border-line bg-canvas px-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
+                <app-date-input class="block min-w-[8.5rem] flex-1 sm:flex-none sm:w-40 sm:shrink-0" [(value)]="row.date"
+                  inputClass="h-9 w-full rounded-lg border border-line bg-canvas px-2.5 text-sm text-ink focus:outline-none focus:border-brand focus:bg-white transition" />
                 <button type="button" (click)="removeEditInstallmentRow($index)" [disabled]="editInstallments.length <= 1"
                   [title]="'detail.removeInstallment' | transloco"
-                  class="shrink-0 grid h-7 w-7 place-items-center rounded-lg text-ink-faint hover:bg-[#FEF2F2] hover:text-[#DC2626] transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  class="shrink-0 grid h-9 w-9 place-items-center rounded-lg text-ink-faint hover:bg-[#FEF2F2] hover:text-[#DC2626] transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
                   <app-icon name="close" cls="h-3.5 w-3.5" />
                 </button>
               </div>
