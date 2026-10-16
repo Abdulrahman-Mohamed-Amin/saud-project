@@ -9,6 +9,7 @@ export class TranslocoHttpLoader implements TranslocoLoader {
   private http = inject(HttpClient);
 
   getTranslation(lang: string) {
-    return this.http.get<Translation>(`i18n/${lang}.json`);
+    // ?v= يمنع المتصفح من استخدام نسخة قديمة مخزَّنة من ملف الترجمة بعد كل تحديث
+    return this.http.get<Translation>(`i18n/${lang}.json?v=${Date.now()}`);
   }
 }
