@@ -1,1 +1,0 @@
-function o(t){let[e,n,r]=t.split("-").map(Number);return new Date(e,(n??1)-1,r??1)}function a(){let t=new Date;return t.setHours(0,0,0,0),t}function u(t){return Math.round((o(t).getTime()-a().getTime())/864e5)}export{u as a};
