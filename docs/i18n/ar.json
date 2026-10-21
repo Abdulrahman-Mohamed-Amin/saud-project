@@ -288,6 +288,7 @@
     "editClient": "تعديل العميل",
     "startDate": "تاريخ البداية",
     "endDate": "تاريخ النهاية",
+    "noReminderDue": "لا توجد دفعة متأخرة أو متبقٍّ على استحقاقها {{days}} يوماً أو أقل، فلن يُجهَّز تذكير",
     "rentDuration": "مدة الإيجار",
     "monthsCount": "{{count}} شهر",
     "paymentNoteUpdatedToast": "تم تعديل الملاحظة",

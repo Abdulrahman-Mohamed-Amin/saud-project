@@ -288,6 +288,7 @@
     "editClient": "Edit Client",
     "startDate": "Start Date",
     "endDate": "End Date",
+    "noReminderDue": "No payment is overdue or due within {{days}} days, so no reminder was prepared",
     "rentDuration": "Rent Duration",
     "monthsCount": "{{count}} month(s)",
     "paymentNoteUpdatedToast": "Note updated",

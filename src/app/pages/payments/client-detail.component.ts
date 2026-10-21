@@ -10,7 +10,7 @@ import { DateInputComponent } from '../../core/date-input/date-input.component';
 import { SupabaseService, ContractWithPayments, PaymentRow, ArchivedContract, SUPABASE_URL } from '../../core/supabase.service';
 import { ToastService } from '../../core/toast.service';
 import { AuthService } from '../../core/auth.service';
-import { buildReminderMessage, paymentLabelAr } from '../../core/reminder-message';
+import { buildReminderMessage, paymentLabelAr, reminderPaymentsOf, REMINDER_WINDOW_DAYS } from '../../core/reminder-message';
 import { addYearIso, daysDiffFromToday, monthsBetween, spreadInstallmentDates } from '../../core/date-utils';
 
 @Component({
@@ -310,20 +310,20 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     const to = this.clientEmail(c);
     if (!to) return null;
 
-    const target = this.targetPaymentFor(c);
-    if (!target) return null;
+    const payments = reminderPaymentsOf(c.payments);
+    if (!payments.length) return null;
 
     const unitCode = c.fields?.['unit_code'] ?? '';
-    const subject = `بخصوص ${paymentLabelAr(target.installmentNumber)} — وحدة ${unitCode} — ${this.projectName()}`;
+    const subject = payments.length === 1
+      ? `بخصوص ${paymentLabelAr(payments[0].installmentNumber)} — وحدة ${unitCode} — ${this.projectName()}`
+      : `بخصوص الدفعات المستحقة — وحدة ${unitCode} — ${this.projectName()}`;
     const body = buildReminderMessage({
       clientName: c.client_name,
       gender: (c.fields['gender'] as '' | 'male' | 'female') ?? '',
       senderName: this.auth.displayName || 'عبدالرحمن أمين',
       unitCode,
       projectName: this.projectName(),
-      installmentNumber: target.installmentNumber,
-      dueDateFormatted: target.dueDateFormatted,
-      diffDays: target.diffDays,
+      payments,
     });
 
     return { to, subject, body };
@@ -363,28 +363,15 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
     return raw ? `tel:+${this.toIntlPhone(raw)}` : '';
   }
 
-  /** الدفعة الأنسب للتذكير بها: المتأخرة أولاً، وإلا أقرب دفعة غير مسددة قادمة —
-   *  يرجع null لو كل الدفعات مسددة (مفيش داعي لتذكير) */
-  private targetPaymentFor(c: ContractWithPayments): { installmentNumber: number; dueDateFormatted: string; diffDays: number } | null {
-    const target =
-      c.payments.find(p => !p.paid && daysDiffFromToday(p.due_date) < 0) ??
-      c.payments.find(p => !p.paid);
-    if (!target) return null;
-    return {
-      installmentNumber: target.installment_number,
-      dueDateFormatted: this.formatDate(target.due_date),
-      diffDays: daysDiffFromToday(target.due_date),
-    };
-  }
-
   /** يبني رقم الهاتف الدولي ونص رسالة التذكير لعميل */
   private buildWhatsAppMessage(c: ContractWithPayments): { phone: string; text: string } | null {
     const raw = this.clientWhatsApp(c);
     if (!raw) return null;
     const phone = this.toIntlPhone(raw);
 
-    const target = this.targetPaymentFor(c);
-    if (!target) return null;
+    // التذكير يُجهَّز فقط لو فيه دفعة متأخرة أو متبقٍّ على استحقاقها 20 يوماً أو أقل (REMINDER_WINDOW_DAYS)
+    const payments = reminderPaymentsOf(c.payments);
+    if (!payments.length) return null;
 
     const unitCode = c.fields?.['unit_code'] ?? '';
     // ملاحظة: نستخدم النص العربي مباشرة عمداً — رسالة الواتساب موجّهة للعميل مباشرة
@@ -395,9 +382,7 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
       senderName: this.auth.displayName || 'عبدالرحمن أمين',
       unitCode,
       projectName: this.projectName(),
-      installmentNumber: target.installmentNumber,
-      dueDateFormatted: target.dueDateFormatted,
-      diffDays: target.diffDays,
+      payments,
     });
 
     return { phone, text };
@@ -405,7 +390,10 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
 
   openWhatsApp(c: ContractWithPayments): void {
     const built = this.buildWhatsAppMessage(c);
-    if (!built) return;
+    if (!built) {
+      this.toast.info(this.transloco.translate('detail.noReminderDue', { days: REMINDER_WINDOW_DAYS }));
+      return;
+    }
     window.location.href = `whatsapp://send?phone=${built.phone}&text=${encodeURIComponent(built.text)}`;
   }
 

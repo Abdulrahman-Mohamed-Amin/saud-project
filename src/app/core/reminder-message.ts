@@ -1,17 +1,52 @@
-/** رسالة التذكير الموحّدة (واتساب + إيميل) — نص واحد يُبنى حسب حالة الدفعة (قريبة/اليوم/متأخرة)
- *  وجنس العميل (ذكر/أنثى)، بدل نص ثابت واحد لجميع الحالات. */
+import { daysDiffFromToday } from './date-utils';
+
+/** رسالة التذكير الموحّدة (واتساب + إيميل) — نص واحد يضم كل الدفعات المستحقة للعميل بتفاصيل كل دفعة
+ *  (المبلغ، الموعد، الحالة، وما دُفع منها وما تبقى لو كانت مدفوعة جزئياً)، ويُبنى حسب جنس العميل. */
+
+/** الدفعات تدخل في رسالة التذكير فقط لو متبقٍّ على استحقاقها هذا العدد من الأيام أو أقل (والمتأخرة طبعاً) */
+export const REMINDER_WINDOW_DAYS = 20;
+
+export interface ReminderPayment {
+  /** رقم القسط (1، 2، 3...) — يُحوَّل داخلياً لصيغة عربية ("الدفعة الأولى"، "الدفعة الثانية"...) */
+  installmentNumber: number;
+  /** قيمة الدفعة */
+  amount: number;
+  /** ما دُفع منها حتى الآن (0 لو لم يُدفع شيء) */
+  paidAmount: number;
+  /** تاريخ الاستحقاق بصيغة dd/mm/yyyy */
+  dueDateFormatted: string;
+  /** الفرق بالأيام بين اليوم وتاريخ الاستحقاق — سالب يعني متأخرة، صفر يعني اليوم، موجب يعني لسه لم تحن */
+  diffDays: number;
+}
+
 export interface ReminderMessageInput {
   clientName: string;
   gender: '' | 'male' | 'female';
   senderName: string;
   unitCode: string;
   projectName: string;
-  /** رقم القسط (1، 2، 3...) — يُحوَّل داخلياً لصيغة عربية ("الدفعة الأولى"، "الدفعة الثانية"...) */
-  installmentNumber: number;
-  /** تاريخ الاستحقاق بصيغة dd/mm/yyyy */
-  dueDateFormatted: string;
-  /** الفرق بالأيام بين اليوم وتاريخ الاستحقاق — سالب يعني متأخرة، صفر يعني اليوم، موجب يعني لسه لم تحن */
-  diffDays: number;
+  /** الدفعات المطلوب التذكير بها، مرتبة بتاريخ الاستحقاق (يجب ألا تكون فارغة) */
+  payments: ReminderPayment[];
+}
+
+/** الدفعات التي يُجهَّز لها تذكير: غير المسددة بالكامل، والمتأخرة أو متبقٍّ على استحقاقها 20 يوماً أو أقل.
+ *  لو رجعت مصفوفة فارغة فلا يُجهَّز أي تذكير في الشات. */
+export function reminderPaymentsOf(payments: {
+  installment_number: number; amount: number; paid_amount?: number | null; paid: boolean; due_date: string;
+}[]): ReminderPayment[] {
+  return payments
+    .filter(p => !p.paid && daysDiffFromToday(p.due_date) <= REMINDER_WINDOW_DAYS)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date) || a.installment_number - b.installment_number)
+    .map(p => {
+      const [y, m, d] = p.due_date.split('-');
+      return {
+        installmentNumber: p.installment_number,
+        amount: p.amount,
+        paidAmount: Math.min(p.amount, p.paid_amount ?? 0),
+        dueDateFormatted: `${d}/${m}/${y}`,
+        diffDays: daysDiffFromToday(p.due_date),
+      };
+    });
 }
 
 /** صيغة الترتيب العربي المؤنّث (يتوافق مع "الدفعة") لأي رقم من 1 إلى 60 — "الأولى"، "الثانية عشرة"،
@@ -36,24 +71,54 @@ export function paymentLabelAr(installmentNumber: number): string {
   return `الدفعة ${arabicOrdinalFeminine(installmentNumber)}`;
 }
 
+const money = (n: number) => `${Math.round(n).toLocaleString('en-US')} ريال`;
+
+function statusLine(diffDays: number): string {
+  if (diffDays < 0) return `متأخرة — مضى على موعد استحقاقها (${Math.abs(diffDays)}) يوم`;
+  if (diffDays === 0) return 'يحين موعد استحقاقها اليوم';
+  return `سيحين موعد استحقاقها بعد (${diffDays}) يوم`;
+}
+
+/** تفاصيل دفعة واحدة كأسطر نصية: المبلغ، الموعد، الحالة، وتفصيل الجزء المدفوع لو وُجد */
+function paymentBlock(p: ReminderPayment): string[] {
+  const lines: string[] = [];
+  const remaining = Math.max(0, p.amount - p.paidAmount);
+  if (p.paidAmount > 0) {
+    lines.push(`   • قيمة الدفعة: ${money(p.amount)}`);
+    lines.push(`   • المدفوع منها: ${money(p.paidAmount)}`);
+    lines.push(`   • المتبقي عليكم: ${money(remaining)}`);
+  } else {
+    lines.push(`   • المبلغ: ${money(p.amount)}`);
+  }
+  lines.push(`   • موعد الاستحقاق: ${p.dueDateFormatted}`);
+  lines.push(`   • الحالة: ${statusLine(p.diffDays)}`);
+  return lines;
+}
+
 export function buildReminderMessage(input: ReminderMessageInput): string {
-  const { clientName, gender, senderName, unitCode, projectName, installmentNumber, dueDateFormatted, diffDays } = input;
+  const { clientName, gender, senderName, unitCode, projectName, payments } = input;
 
   const honorific = gender === 'female' ? ' المحترمة' : gender === 'male' ? ' المحترم' : '';
-  const paymentLabel = paymentLabelAr(installmentNumber);
+  const single = payments.length === 1;
 
-  let statusClause: string;
-  let callToAction: string;
-  if (diffDays < 0) {
-    statusClause = `واللي كان موعد استحقاقها بتاريخ (${dueDateFormatted})، ومضى على موعد استحقاقها (${Math.abs(diffDays)}) يوم حتى الآن.`;
-    callToAction = 'نأمل منكم التكرم بإتمام السداد في أقرب وقت ممكن.';
-  } else if (diffDays === 0) {
-    statusClause = `واللي يحين موعد استحقاقها اليوم بتاريخ (${dueDateFormatted}).`;
-    callToAction = 'نأمل منكم التكرم بإتمام السداد اليوم.';
-  } else {
-    statusClause = `واللي سيحين موعد استحقاقها بتاريخ (${dueDateFormatted})، وذلك بعد (${diffDays}) يوم من تاريخه.`;
-    callToAction = 'نرجو منكم التكرم بالاستعداد لإتمام السداد في الموعد المحدد.';
-  }
+  const details = payments
+    .map(p => [`▪️ ${paymentLabelAr(p.installmentNumber)}`, ...paymentBlock(p)].join('\n'))
+    .join('\n\n');
+
+  const totalRemaining = payments.reduce((sum, p) => sum + Math.max(0, p.amount - p.paidAmount), 0);
+  const totalLine = single ? '' : `\n\n*إجمالي المستحق عليكم: ${money(totalRemaining)}*`;
+
+  const anyOverdue = payments.some(p => p.diffDays < 0);
+  const anyToday = payments.some(p => p.diffDays === 0);
+  const callToAction = anyOverdue
+    ? 'نأمل منكم التكرم بإتمام السداد في أقرب وقت ممكن.'
+    : anyToday
+      ? 'نأمل منكم التكرم بإتمام السداد اليوم.'
+      : 'نرجو منكم التكرم بالاستعداد لإتمام السداد في الموعد المحدد.';
+
+  const intro = single
+    ? `حبيت أذكركم بخصوص ${paymentLabelAr(payments[0].installmentNumber)} المستحقة للوحدة (${unitCode}) في ${projectName}، وتفاصيلها كالتالي:`
+    : `حبيت أذكركم بخصوص الدفعات المستحقة للوحدة (${unitCode}) في ${projectName}، وتفاصيلها كالتالي:`;
 
   return (
 `السلام عليكم ورحمة الله وبركاته 🌹
@@ -62,7 +127,9 @@ export function buildReminderMessage(input: ReminderMessageInput): string {
 
 معك ${senderName} من شركة ريادة وتعمير.
 
-حبيت أذكركم بخصوص ${paymentLabel} المستحقة للوحدة (${unitCode}) في ${projectName}، ${statusClause}
+${intro}
+
+${details}${totalLine}
 
 ${callToAction}
 

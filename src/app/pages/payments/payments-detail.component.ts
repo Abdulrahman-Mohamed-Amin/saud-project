@@ -11,7 +11,7 @@ import { DateInputComponent } from '../../core/date-input/date-input.component';
 import { SupabaseService, ContractWithPayments } from '../../core/supabase.service';
 import { ToastService } from '../../core/toast.service';
 import { AuthService } from '../../core/auth.service';
-import { buildReminderMessage } from '../../core/reminder-message';
+import { buildReminderMessage, reminderPaymentsOf } from '../../core/reminder-message';
 import { addYearIso, daysDiffFromToday, monthsBetween, spreadInstallmentDates } from '../../core/date-utils';
 
 interface XlsxRow {
@@ -67,7 +67,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
   // sorted alphabetically by unit_code
   sorted = computed(() =>
     [...this.contracts()].sort((a, b) =>
-      (a.fields?.['unit_code'] ?? '').localeCompare(b.fields?.['unit_code'] ?? '', 'ar')
+      (a.fields?.['unit_code'] ?? '').localeCompare(b.fields?.['unit_code'] ?? '', 'ar', { numeric: true })
     )
   );
 
@@ -990,10 +990,8 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
     if (!raw) return null;
     const phone = this.toIntlPhone(raw);
 
-    const targetPayment =
-      c.payments.find(p => !p.paid && daysDiffFromToday(p.due_date) < 0) ??
-      c.payments.find(p => !p.paid);
-    if (!targetPayment) return null;
+    const payments = reminderPaymentsOf(c.payments);
+    if (!payments.length) return null;
 
     const unitCode = c.fields?.['unit_code'] ?? '';
     // ملاحظة: نستخدم النص العربي مباشرة عمداً — رسالة الواتساب موجّهة للعميل مباشرة
@@ -1004,9 +1002,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
       senderName: this.auth.displayName || 'عبدالرحمن أمين',
       unitCode,
       projectName: this.projectName(),
-      installmentNumber: targetPayment.installment_number,
-      dueDateFormatted: this.formatDate(targetPayment.due_date),
-      diffDays: daysDiffFromToday(targetPayment.due_date),
+      payments,
     });
 
     return { phone, text };
