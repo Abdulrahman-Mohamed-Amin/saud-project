@@ -1019,6 +1019,7 @@ export class PaymentsDetailComponent implements OnInit, OnDestroy {
   }
 
   startWhatsAppReminders(): void {
+    if (!this.auth.canManagePayments) return;
     this.waQueue = this.contracts().filter(c =>
       c.payments.some(p => !p.paid && daysDiffFromToday(p.due_date) < 0) && !!this.clientWhatsApp(c)
     );

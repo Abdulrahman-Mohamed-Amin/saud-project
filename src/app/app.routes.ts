@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { LayoutComponent } from './layout/layout.component';
-import { authGuard } from './core/auth.guard';
+import { authGuard, writeGuard } from './core/auth.guard';
 
 export const routes: Routes = [
   {
@@ -50,6 +50,7 @@ export const routes: Routes = [
       },
       {
         path: 'generate',
+        canActivate: [writeGuard],
         loadComponent: () => import('./pages/generate/generate.component').then((m) => m.GenerateComponent),
         data: { title: 'nav.generate', subtitle: 'layout.generateSubtitle' },
       },

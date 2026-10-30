@@ -143,11 +143,13 @@
                     <p class="text-[10px] text-ink-faint">{{ 'dashboard.noCollection' | transloco }}</p>
                   }
                 </a>
-                <button (click)="startEdit(p.name, $event)"
-                        [title]="'dashboard.editName' | transloco"
-                        class="shrink-0 p-1 rounded-md text-ink-faint hover:text-brand-700 hover:bg-brand-50 transition">
-                  <app-icon name="pencil" cls="h-3.5 w-3.5" />
-                </button>
+                @if (auth.canManagePayments) {
+                  <button (click)="startEdit(p.name, $event)"
+                          [title]="'dashboard.editName' | transloco"
+                          class="shrink-0 p-1 rounded-md text-ink-faint hover:text-brand-700 hover:bg-brand-50 transition">
+                    <app-icon name="pencil" cls="h-3.5 w-3.5" />
+                  </button>
+                }
               </div>
             } @else {
               <div class="p-3">
@@ -284,11 +286,13 @@
                         </span>
                       }
                     </a>
-                    <button (click)="startEdit(p.name, $event)"
-                            [title]="'dashboard.editName' | transloco"
-                            class="shrink-0 p-1 rounded-md text-ink-faint hover:text-brand-700 hover:bg-brand-50 transition">
-                      <app-icon name="pencil" cls="h-3.5 w-3.5" />
-                    </button>
+                    @if (auth.canManagePayments) {
+                      <button (click)="startEdit(p.name, $event)"
+                              [title]="'dashboard.editName' | transloco"
+                              class="shrink-0 p-1 rounded-md text-ink-faint hover:text-brand-700 hover:bg-brand-50 transition">
+                        <app-icon name="pencil" cls="h-3.5 w-3.5" />
+                      </button>
+                    }
                   </div>
                 } @else {
                   <div class="px-3 py-2.5">

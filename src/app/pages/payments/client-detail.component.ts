@@ -126,6 +126,7 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
 
   // ── Toggle paid / unpaid ──────────────────────────────────────────────────────
   async toggle(p: PaymentRow, c: ContractWithPayments) {
+    if (!this.auth.canManagePayments) return;
     const ok = await this.supa.togglePayment(p.id, p.paid, p.amount);
     if (ok) {
       const nowPaid = !p.paid;
@@ -167,7 +168,6 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
   }
 
   openPaymentNote(p: PaymentRow) {
-    if (!this.auth.canManagePayments) return;
     this.notePaymentId = p.id;
     this.notePaymentAmount = String(p.paid_amount ?? 0);
     this.notePaymentNote = '';
@@ -389,6 +389,7 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
   }
 
   openWhatsApp(c: ContractWithPayments): void {
+    if (!this.auth.canManagePayments) return;
     const built = this.buildWhatsAppMessage(c);
     if (!built) {
       this.toast.info(this.transloco.translate('detail.noReminderDue', { days: REMINDER_WINDOW_DAYS }));

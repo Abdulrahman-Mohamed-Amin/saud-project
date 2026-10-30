@@ -6,6 +6,7 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { IconComponent } from '../../core/icon/icon.component';
 import { PaymentsService } from '../../core/payments.service';
 import { SupabaseService } from '../../core/supabase.service';
+import { AuthService } from '../../core/auth.service';
 import { daysDiffFromToday } from '../../core/date-utils';
 
 @Component({
@@ -17,6 +18,7 @@ import { daysDiffFromToday } from '../../core/date-utils';
 export class DashboardComponent implements OnInit {
   readonly notif = inject(PaymentsService);
   private supa = inject(SupabaseService);
+  readonly auth = inject(AuthService);
 
   ngOnInit() { this.notif.refresh(); }
 
@@ -61,6 +63,7 @@ export class DashboardComponent implements OnInit {
   saving = false;
 
   startEdit(name: string, e: Event): void {
+    if (!this.auth.canManagePayments) return;
     e.preventDefault();
     e.stopPropagation();
     this.editingProject.set(name);
@@ -73,6 +76,7 @@ export class DashboardComponent implements OnInit {
   }
 
   async saveEdit(): Promise<void> {
+    if (!this.auth.canManagePayments) return;
     const old = this.editingProject();
     const trimmed = this.editName.trim();
     if (!old || !trimmed || trimmed === old || this.saving) return;
