@@ -1,10 +1,12 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { IconComponent } from '../../core/icon/icon.component';
 import { AuthService } from '../../core/auth.service';
 import { LanguageService } from '../../core/language.service';
+import { SupabaseService, AppUser } from '../../core/supabase.service';
+import { ToastService } from '../../core/toast.service';
 
 @Component({
   selector: 'app-settings',
@@ -15,6 +17,9 @@ import { LanguageService } from '../../core/language.service';
 export class SettingsComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly lang = inject(LanguageService);
+  private supa = inject(SupabaseService);
+  private toast = inject(ToastService);
+  private transloco = inject(TranslocoService);
 
   name = '';
   company = '';
@@ -63,6 +68,7 @@ export class SettingsComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadUsers();
     const meta = this.auth.currentUser?.user_metadata ?? {};
     this.name     = meta['name']    ?? 'عبدالرحمن الأمين';
     this.role     = meta['role']    ?? 'مدير لوحة التحكم';
@@ -99,5 +105,58 @@ export class SettingsComponent implements OnInit {
       this.saved = true;
       setTimeout(() => this.saved = false, 2500);
     }
+  }
+
+  // ── إدارة المستخدمين (تظهر للمدير فقط) ─────────────────────────────────────────
+  /** null = الحساب الحالي ليس مديراً (القسم مخفي) */
+  users: AppUser[] | null = null;
+  usersBusyId = '';
+  pwUserId: string | null = null;
+  pwValue = '';
+  deleteUserId: string | null = null;
+
+  async loadUsers() {
+    this.users = await this.supa.adminListUsers();
+  }
+  isSelf(u: AppUser): boolean { return u.id === this.auth.currentUser?.id; }
+  formatLogin(iso: string | null): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  }
+
+  openPassword(u: AppUser) { this.pwUserId = u.id; this.pwValue = ''; this.deleteUserId = null; }
+  cancelPassword() { this.pwUserId = null; this.pwValue = ''; }
+  async savePassword(u: AppUser) {
+    if (this.pwValue.length < 6 || this.usersBusyId) return;
+    this.usersBusyId = u.id;
+    const err = await this.supa.adminSetPassword(u.id, this.pwValue);
+    this.usersBusyId = '';
+    if (err) { this.toast.error(err); return; }
+    this.toast.success(this.transloco.translate('settings.userPasswordChanged'), u.email);
+    this.cancelPassword();
+  }
+
+  async toggleSuspended(u: AppUser) {
+    if (this.usersBusyId || this.isSelf(u)) return;
+    this.usersBusyId = u.id;
+    const suspend = !u.suspended;
+    const err = await this.supa.adminSetSuspended(u.id, suspend);
+    this.usersBusyId = '';
+    if (err) { this.toast.error(err); return; }
+    this.toast.success(this.transloco.translate(suspend ? 'settings.userSuspendedToast' : 'settings.userResumedToast'), u.email);
+    await this.loadUsers();
+  }
+
+  askDeleteUser(u: AppUser) { this.deleteUserId = u.id; this.pwUserId = null; }
+  async confirmDeleteUser(u: AppUser) {
+    if (this.usersBusyId || this.isSelf(u)) return;
+    this.usersBusyId = u.id;
+    const err = await this.supa.adminDeleteUser(u.id);
+    this.usersBusyId = '';
+    this.deleteUserId = null;
+    if (err) { this.toast.error(err); return; }
+    this.toast.success(this.transloco.translate('settings.userDeletedToast'), u.email);
+    await this.loadUsers();
   }
 }

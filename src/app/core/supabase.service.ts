@@ -43,6 +43,18 @@ export interface ContractWithPayments extends ContractRow {
   payments: PaymentRow[];
 }
 
+export interface AppUser {
+  id: string;
+  email: string;
+  name: string;
+  created_at: string;
+  last_sign_in_at: string | null;
+  suspended: boolean;
+  /** false = حساب للمشاهدة فقط */
+  can_write: boolean;
+  is_admin: boolean;
+}
+
 export interface ArchivedContract {
   id: string;
   original_contract_id: string;
@@ -429,6 +441,25 @@ export class SupabaseService {
       .eq('original_contract_id', contractId)
       .order('archived_at', { ascending: false });
     return error || !data ? [] : (data as ArchivedContract[]);
+  }
+
+  // ── إدارة المستخدمين (للمدير فقط — الدوال في قاعدة البيانات تتحقق من الصلاحية) ──────────
+  /** قائمة المستخدمين، أو null لو الحساب الحالي ليس مديراً (أو الدوال غير مفعّلة بعد) */
+  async adminListUsers(): Promise<AppUser[] | null> {
+    const { data, error } = await this.db.rpc('admin_list_users');
+    return error || !data ? null : (data as AppUser[]);
+  }
+  async adminSetPassword(id: string, password: string): Promise<string | null> {
+    const { error } = await this.db.rpc('admin_set_password', { target: id, new_password: password });
+    return error ? error.message : null;
+  }
+  async adminSetSuspended(id: string, suspended: boolean): Promise<string | null> {
+    const { error } = await this.db.rpc('admin_set_suspended', { target: id, suspended });
+    return error ? error.message : null;
+  }
+  async adminDeleteUser(id: string): Promise<string | null> {
+    const { error } = await this.db.rpc('admin_delete_user', { target: id });
+    return error ? error.message : null;
   }
 
 }

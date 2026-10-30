@@ -81,6 +81,100 @@
     </button>
   </section>
 
+  <!-- Users (admin only) -->
+  @if (users) {
+    <section class="rounded-2xl bg-white border border-line shadow-card p-5 lg:p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-700"><app-icon name="users" /></div>
+        <div>
+          <h2 class="font-bold">{{ 'settings.usersTitle' | transloco }}</h2>
+          <p class="text-xs text-ink-muted">{{ 'settings.usersSub' | transloco }}</p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        @for (u of users; track u.id) {
+          <div class="rounded-xl border border-line p-3" [class.bg-canvas]="u.suspended">
+            <div class="flex items-center gap-3 flex-wrap">
+              <div class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand text-white font-bold">
+                {{ (u.name || u.email).charAt(0).toUpperCase() }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-ink truncate">{{ u.name || u.email }}</p>
+                <p class="text-xs text-ink-muted truncate" dir="ltr">{{ u.email }}</p>
+                <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                  @if (u.is_admin) {
+                    <span class="rounded-md bg-brand-50 border border-brand-200 px-2 py-0.5 text-[10px] font-semibold text-brand-700">{{ 'settings.userAdmin' | transloco }}</span>
+                  } @else if (!u.can_write) {
+                    <span class="rounded-md bg-canvas border border-line px-2 py-0.5 text-[10px] font-semibold text-ink-muted">{{ 'settings.userReadOnly' | transloco }}</span>
+                  }
+                  @if (u.suspended) {
+                    <span class="rounded-md bg-[#FEF2F2] border border-[#FCA5A5] px-2 py-0.5 text-[10px] font-semibold text-[#DC2626]">{{ 'settings.userSuspended' | transloco }}</span>
+                  }
+                  <span class="text-[10px] text-ink-faint tnum">
+                    {{ u.last_sign_in_at ? (('settings.userLastLogin' | transloco) + ': ' + formatLogin(u.last_sign_in_at)) : ('settings.userNeverLoggedIn' | transloco) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 flex-wrap">
+                <button type="button" (click)="openPassword(u)" [disabled]="usersBusyId === u.id"
+                  class="rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink-muted hover:bg-canvas hover:text-ink transition cursor-pointer disabled:opacity-50">
+                  {{ 'settings.changePassword' | transloco }}
+                </button>
+                @if (!isSelf(u)) {
+                  <button type="button" (click)="toggleSuspended(u)" [disabled]="usersBusyId === u.id"
+                    class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                    [class.border-[#FDE68A]]="!u.suspended" [class.bg-[#FFFBEB]]="!u.suspended" [class.text-[#D97706]]="!u.suspended"
+                    [class.border-[#BBF7D0]]="u.suspended" [class.bg-[#F0FDF4]]="u.suspended" [class.text-[#16A34A]]="u.suspended">
+                    {{ (u.suspended ? 'settings.userResume' : 'settings.userSuspend') | transloco }}
+                  </button>
+                  <button type="button" (click)="askDeleteUser(u)" [disabled]="usersBusyId === u.id"
+                    class="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-3 py-1.5 text-xs font-semibold text-[#DC2626] hover:bg-[#FEE2E2] transition cursor-pointer disabled:opacity-50">
+                    {{ 'common.delete' | transloco }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            @if (pwUserId === u.id) {
+              <div class="mt-3 flex items-center gap-2 flex-wrap">
+                <input [(ngModel)]="pwValue" type="text" dir="ltr" autocomplete="off" [placeholder]="'settings.userNewPassword' | transloco"
+                  (keyup.enter)="savePassword(u)"
+                  class="min-w-0 flex-1 rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-start focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100" />
+                <button type="button" (click)="savePassword(u)" [disabled]="pwValue.length < 6 || usersBusyId === u.id"
+                  class="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white hover:bg-brand-600 transition cursor-pointer disabled:opacity-50">
+                  {{ 'common.save' | transloco }}
+                </button>
+                <button type="button" (click)="cancelPassword()"
+                  class="rounded-lg border border-line bg-white px-4 py-2 text-xs font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+                  {{ 'common.cancel' | transloco }}
+                </button>
+              </div>
+              @if (pwValue && pwValue.length < 6) {
+                <p class="text-xs text-[#DC2626] mt-1.5">{{ 'settings.passwordTooShort' | transloco }}</p>
+              }
+            }
+
+            @if (deleteUserId === u.id) {
+              <div class="mt-3 flex items-center gap-2 flex-wrap">
+                <span class="flex-1 text-xs font-semibold text-[#DC2626]">{{ 'settings.userDeleteConfirm' | transloco }}</span>
+                <button type="button" (click)="confirmDeleteUser(u)" [disabled]="usersBusyId === u.id"
+                  class="rounded-lg bg-[#DC2626] px-4 py-2 text-xs font-semibold text-white hover:bg-[#b91c1c] transition cursor-pointer disabled:opacity-50">
+                  {{ 'common.delete' | transloco }}
+                </button>
+                <button type="button" (click)="deleteUserId = null"
+                  class="rounded-lg border border-line bg-white px-4 py-2 text-xs font-semibold text-ink-muted hover:bg-canvas transition cursor-pointer">
+                  {{ 'common.cancel' | transloco }}
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+
   <!-- Account -->
   <section class="rounded-2xl bg-white border border-line shadow-card p-5 lg:p-6">
     <div class="flex items-center gap-3 mb-5">
